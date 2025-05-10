@@ -1,8 +1,8 @@
 import PDFDocument from 'pdfkit';
 
-/**
- * Renders a chart to the PDF document
- */
+/*** Renders a chart to the PDF document*/
+
+
 export const renderChart = async (
     doc: PDFKit.PDFDocument,
     chartData: any,
@@ -10,18 +10,18 @@ export const renderChart = async (
     style: any = {}
 ): Promise<void> => {
     try {
-        // Сохраняем текущее состояние перед рисованием графика
+        // Saving the current state before drawing the chart
         doc.save();
 
-        // Устанавливаем размеры
+        // Setting the dimensions
         const width = style?.width || 400;
         const height = style?.height || 300;
 
-        // Рисуем прямоугольник для фона графика
+        // Drawing a rectangle for the chart background
         doc.rect(position.x, position.y, width, height)
             .fillAndStroke(style?.backgroundColor || '#f0f0f0', style?.borderColor || '#cccccc');
 
-        // Рисуем заголовок графика
+        // Drawing the chart title
         if (chartData.title) {
             doc.fontSize(16)
                 .fillColor('#000000')
@@ -31,7 +31,7 @@ export const renderChart = async (
                 });
         }
 
-        // Рисуем тип графика
+        // Drawing the chart type
         const typeLabelY = chartData.title ? position.y + 45 : position.y + 20;
         doc.fontSize(14)
             .fillColor('#333333')
@@ -40,7 +40,7 @@ export const renderChart = async (
                 align: 'center'
             });
 
-        // Отображаем данные графика
+        // Rendering the chart data
         const dataY = chartData.title ? position.y + 80 : position.y + 50;
 
         if (chartData.data?.datasets && chartData.data.datasets.length > 0) {
@@ -53,13 +53,13 @@ export const renderChart = async (
                 .fillColor('#333333')
                 .text(`Dataset: ${dataset.label || 'Unnamed dataset'}`, position.x + 20, dataY);
 
-            // Определяем область для графика
+            // Defining the area for the chart
             const chartAreaX = position.x + 60;
             const chartAreaY = dataY + 30;
             const chartAreaWidth = width - 80;
             const chartAreaHeight = height - (chartAreaY - position.y) - 30;
 
-            // Рисуем оси
+            // Drawing the axes
             doc.strokeColor('#333333')
                 .lineWidth(1)
                 .moveTo(chartAreaX, chartAreaY)
@@ -67,19 +67,19 @@ export const renderChart = async (
                 .lineTo(chartAreaX + chartAreaWidth, chartAreaY + chartAreaHeight)
                 .stroke();
 
-            // Рисуем график в зависимости от типа
+            // Drawing the chart based on the type
             if (chartData.type === 'bar' && data.length > 0) {
                 const barWidth = Math.min(30, (chartAreaWidth / data.length) * 0.7);
                 const barSpacing = (chartAreaWidth / data.length);
 
-                // Рисуем полосы
+                // Drawing the bars
                 for (let i = 0; i < data.length && i < labels.length; i++) {
                     const value = data[i];
                     const barHeight = (value / maxValue) * chartAreaHeight;
                     const barX = chartAreaX + (i * barSpacing) + (barSpacing - barWidth) / 2;
                     const barY = chartAreaY + chartAreaHeight - barHeight;
 
-                    // Выбираем цвет
+                    // Choosing the color
                     let barColor = '#4285F4';
                     if (Array.isArray(dataset.backgroundColor)) {
                         barColor = dataset.backgroundColor[i % dataset.backgroundColor.length];
@@ -87,12 +87,12 @@ export const renderChart = async (
                         barColor = dataset.backgroundColor;
                     }
 
-                    // Рисуем полосу
+                    // Drawing the bar
                     doc.fillColor(barColor)
                         .rect(barX, barY, barWidth, barHeight)
                         .fill();
 
-                    // Добавляем метку
+                    // Adding the label
                     doc.fontSize(8)
                         .fillColor('#000000')
                         .text(labels[i], barX, chartAreaY + chartAreaHeight + 5, {
@@ -100,17 +100,17 @@ export const renderChart = async (
                             align: 'center'
                         });
 
-                    // Добавляем значение над полосой
+                    // Adding the value above the bar
                     doc.text(value.toString(), barX, barY - 15, {
                         width: barWidth,
                         align: 'center'
                     });
                 }
             } else if (chartData.type === 'line' && data.length > 0) {
-                // Рисуем линейный график
+                // Drawing the line chart
                 const pointSpacing = chartAreaWidth / (data.length - 1 || 1);
 
-                // Устанавливаем цвет линии
+                // Setting the line color
                 let lineColor = '#FF5722';
                 if (dataset.borderColor) {
                     lineColor = typeof dataset.borderColor === 'string'
@@ -118,22 +118,22 @@ export const renderChart = async (
                         : dataset.borderColor[0] || '#FF5722';
                 }
 
-                // Начинаем рисовать линию
+                // Starting to draw the line
                 doc.strokeColor(lineColor)
                     .lineWidth(2)
                     .moveTo(chartAreaX, chartAreaY + chartAreaHeight - (data[0] / maxValue) * chartAreaHeight);
 
-                // Соединяем точки
+                // Connecting the points
                 for (let i = 1; i < data.length; i++) {
                     const pointX = chartAreaX + i * pointSpacing;
                     const pointY = chartAreaY + chartAreaHeight - (data[i] / maxValue) * chartAreaHeight;
                     doc.lineTo(pointX, pointY);
                 }
 
-                // Завершаем линию
+                // Completing the line
                 doc.stroke();
 
-                // Добавляем метки оси X
+                // Adding X-axis labels
                 for (let i = 0; i < data.length && i < labels.length; i++) {
                     const pointX = chartAreaX + i * pointSpacing;
 
@@ -145,34 +145,34 @@ export const renderChart = async (
                         });
                 }
             } else if (chartData.type === 'pie' && data.length > 0) {
-                // Рисуем круговую диаграмму
+                // Drawing the pie chart
                 const centerX = chartAreaX + chartAreaWidth / 2;
                 const centerY = chartAreaY + chartAreaHeight / 2;
                 const radius = Math.min(chartAreaWidth, chartAreaHeight) / 2 - 10;
 
-                // Рассчитываем сумму значений
+                // Calculating the sum of the values
                 const sum = data.reduce((acc: number, val: number) => acc + val, 0);
 
-                // Начальный угол
+                // Starting angle
                 let currentAngle = 0;
 
-                // Рисуем сегменты
+                // Drawing the segments
                 for (let i = 0; i < data.length; i++) {
-                    // Рассчитываем углы для сегмента
+                    // Calculating the angles for the segments
                     const portionAngle = (data[i] / sum) * 2 * Math.PI;
 
-                    // Выбираем цвет
+                    // Choosing the color
                     let segmentColor = '#4285F4';
                     if (Array.isArray(dataset.backgroundColor)) {
                         segmentColor = dataset.backgroundColor[i % dataset.backgroundColor.length];
                     }
 
-                    // Рисуем сегмент - заменяем arc на более сложную, но поддерживаемую PDFKit геометрию
+                    // Drawing the segment – replacing arc with a more complex, but supported PDFKit geometry
                     doc.fillColor(segmentColor);
                     doc.moveTo(centerX, centerY);
 
-                    // Вместо arc используем линии для рисования сегмента круга
-                    const stepCount = 20; // количество шагов для аппроксимации дуги
+                    // Using lines instead of arc to draw the circle segment
+                    const stepCount = 20; // Number of steps for approximating the arc
                     const angleStep = portionAngle / stepCount;
 
                     for (let step = 0; step <= stepCount; step++) {
@@ -190,25 +190,25 @@ export const renderChart = async (
                     doc.lineTo(centerX, centerY);
                     doc.fill();
 
-                    // Обновляем угол
+                    // Updating the angle
                     currentAngle += portionAngle;
                 }
 
-                // Добавляем легенду
+                // Adding the legend
                 let legendY = chartAreaY + chartAreaHeight + 20;
                 for (let i = 0; i < data.length && i < labels.length; i++) {
-                    // Выбираем цвет
+                    // Selecting the color
                     let legendColor = '#4285F4';
                     if (Array.isArray(dataset.backgroundColor)) {
                         legendColor = dataset.backgroundColor[i % dataset.backgroundColor.length];
                     }
 
-                    // Рисуем цветной квадрат
+                    // Drawing a colored square
                     doc.fillColor(legendColor)
                         .rect(position.x + 20, legendY, 10, 10)
                         .fill();
 
-                    // Добавляем текст легенды
+                    // Adding the legend text
                     const percentage = Math.round((data[i] / sum) * 100);
                     doc.fillColor('#000000')
                         .fontSize(8)
@@ -219,11 +219,11 @@ export const renderChart = async (
             }
         }
 
-        // Восстанавливаем состояние после рисования графика
+        // Restoring the state after drawing the chart
         doc.restore();
     } catch (error) {
         console.error('Error rendering chart:', error);
-        // Выводим заполнитель для неудачного графика
+        // Displaying a placeholder for the failed chart
         doc.rect(position.x, position.y, 400, 300)
             .stroke()
             .fontSize(12)

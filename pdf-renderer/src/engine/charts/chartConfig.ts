@@ -1,6 +1,6 @@
-/**
- * Configuration for chart rendering
- */
+/*** Configuration for chart rendering*/
+
+
 export interface ChartConfig {
     type: string;
     data: {
@@ -26,9 +26,9 @@ export interface ChartConfig {
     };
 }
 
-/**
- * Creates a default chart configuration
- */
+/*** Creates a default chart configuration*/
+
+
 export const createDefaultChartConfig = (): ChartConfig => {
     return {
         type: 'bar',

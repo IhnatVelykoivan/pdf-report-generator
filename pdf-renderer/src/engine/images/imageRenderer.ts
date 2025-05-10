@@ -1,9 +1,8 @@
 import PDFDocument from 'pdfkit';
 import { fetchImage } from '../../utils/imageUtils';
 
-/**
- * Renders an image to the PDF document
- */
+/*** Renders an image to the PDF document*/
+
 export const renderImage = async (
     doc: PDFKit.PDFDocument,
     imageData: string | Buffer,

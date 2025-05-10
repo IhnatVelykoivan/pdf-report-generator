@@ -1,30 +1,29 @@
 import sharp from 'sharp';
 
-/**
- * Converts a PDF buffer to an array of image buffers (one per page)
- */
+/*** Converts a PDF buffer to an array of image buffers (one per page)*/
+
 export const convertPDFToImages = async (pdfBuffer: Buffer, dpi: number = 300): Promise<string[]> => {
     try {
         console.log(`Converting PDF to images with DPI: ${dpi}`);
 
-        // Проверка входного параметра
+        // Checking the input parameter
         if (!pdfBuffer || pdfBuffer.length === 0) {
             throw new Error('Empty PDF buffer provided');
         }
 
-        // В реальном приложении здесь бы использовалась библиотека для конвертации PDF в изображения
-        // Например, pdf-lib, pdf.js или вызовы внешних утилит как pdftoppm
-        // Для демонстрации создаем тестовые изображения
+        // In a real application, a library for converting PDF to images would be used here
+        // For example, pdf-lib, pdf.js, or external utilities like pdftoppm
+        // For demonstration purposes, we create test images
+        // Creating images based on the number of pages
+        // Estimating the number of pages (in a real application, this would be done using a PDF library)
 
-        // Создаем изображения в зависимости от количества страниц
-        // Примерно определяем количество страниц (в реальном приложении это бы делалось через pdf библиотеку)
         const estimatedPages = Math.ceil(pdfBuffer.length / 30000);
-        const pageCount = Math.min(Math.max(estimatedPages, 1), 10); // Ограничиваем от 1 до 10 для безопасности
+        const pageCount = Math.min(Math.max(estimatedPages, 1), 10); // Limiting to 1 to 10 for safety
 
         const images: string[] = [];
 
         for (let i = 0; i < pageCount; i++) {
-            // Создаем уникальное изображение для каждой страницы
+            // Creating a unique image for each page
             const pageNumber = i + 1;
 
             const image = await sharp({
@@ -50,7 +49,7 @@ export const convertPDFToImages = async (pdfBuffer: Buffer, dpi: number = 300): 
                 .png()
                 .toBuffer();
 
-            // Конвертируем буфер в base64
+            // Converting the buffer to base64
             const base64Image = `data:image/png;base64,${image.toString('base64')}`;
             images.push(base64Image);
         }
@@ -59,7 +58,7 @@ export const convertPDFToImages = async (pdfBuffer: Buffer, dpi: number = 300): 
     } catch (error) {
         console.error('Error converting PDF to images:', error);
 
-        // Если произошла ошибка, возвращаем заглушку с сообщением об ошибке
+        // If an error occurred, return a placeholder with an error message
         const errorImage = await sharp({
             create: {
                 width: 595,

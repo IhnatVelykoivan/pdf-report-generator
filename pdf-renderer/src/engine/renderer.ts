@@ -6,7 +6,7 @@ import { renderChart } from './charts/chartRenderer';
 import path from 'path';
 import fs from 'fs';
 
-// Настройка пути к шрифтам
+// Setting the font path
 const fontPath = path.resolve(__dirname, '../../assets/fonts');
 
 /*** Applies page style to the PDF document*/
@@ -61,21 +61,20 @@ const applyPageStyle = (doc: PDFKit.PDFDocument, style: any = {}): void => {
     }
 };
 
-/**
- * Загружает и регистрирует шрифты
- */
+/*** Loads and registers fonts*/
+
 const registerFonts = (doc: PDFKit.PDFDocument): void => {
     try {
-        // Проверяем наличие директории шрифтов
+        // Checking the presence of the fonts directory
         if (fs.existsSync(fontPath)) {
-            // Регистрируем стандартный шрифт для кириллицы, если файл существует
+            // Registering a default Cyrillic font if the file exists
             const opensansPath = path.join(fontPath, 'OpenSans-Regular.ttf');
             if (fs.existsSync(opensansPath)) {
-                // Важно: зарегистрировать шрифт с встраиванием
+                // Important: register the font with embedding enabled
                 doc.registerFont('OpenSans', opensansPath);
                 console.log('OpenSans font registered successfully');
 
-                // Сразу устанавливаем стандартный шрифт
+                // Immediately setting the default font
                 doc.font('OpenSans');
             } else {
                 console.warn(`Font file not found: ${opensansPath}`);
@@ -88,29 +87,28 @@ const registerFonts = (doc: PDFKit.PDFDocument): void => {
     }
 };
 
-/**
- * Renders DSL to PDF buffer
- */
+/*** Renders DSL to PDF buffer*/
+
 export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
         try {
             // Create a PDF document with built-in font embedding
             const doc = new PDFDocument({
-                autoFirstPage: false, // Важно: не создавать первую страницу автоматически
+                autoFirstPage: false, // Important: do not create the first page automatically
                 bufferPages: true,
-                compress: true, // Включаем сжатие для меньшего размера файла
+                compress: true, // Enabling compression for a smaller file size
                 info: {
                     Title: 'Generated Document',
                     Creator: 'PDF Renderer Service',
                     Producer: 'PDFKit',
-                    // Убедимся, что метаданные корректно обрабатывают юникод
+                    // Ensuring metadata correctly handles Unicode
                     CreationDate: new Date()
                 },
-                font: 'Helvetica', // Начальный стандартный шрифт
-                pdfVersion: '1.7', // Используем новую версию PDF для лучшей поддержки юникода
+                font: 'Helvetica', // Initial default font
+                pdfVersion: '1.7', // Using a newer PDF version for better Unicode support
             });
 
-            // Регистрируем шрифты с поддержкой кириллицы
+            // Registering fonts with Cyrillic support
             registerFonts(doc);
 
             // Buffer to store PDF data
@@ -139,7 +137,7 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
             // Render template (just store info, don't apply yet)
             renderTemplate(doc, templateName);
 
-            // Рассчитываем общее количество страниц для замены в шаблоне
+            // Calculating the total number of pages for replacement in the template
             const totalPages = dsl.pages?.length || 1;
 
             // Add pages and render content
@@ -177,7 +175,7 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
                                 switch (type) {
                                     case 'text':
                                         if (typeof content === 'string') {
-                                            // Важно: всегда используем шрифт с поддержкой кириллицы
+                                            // Important: always use a font with Cyrillic support
                                             doc.font('OpenSans');
                                             renderText(doc, content, {
                                                 ...style,
@@ -185,7 +183,7 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
                                                 font: 'OpenSans'
                                             });
                                         } else {
-                                            // Попытаемся преобразовать контент в строку
+                                            // Trying to convert the content into a string
                                             try {
                                                 const stringContent = String(content || '');
                                                 console.warn(`Text content is not a string, converting: ${typeof content} -> string`);

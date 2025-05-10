@@ -4,9 +4,8 @@ import axios from 'axios';
 
 const readFileAsync = promisify(fs.readFile);
 
-/**
- * Fetches image data from various sources
- */
+/*** Fetches image data from various sources*/
+
 export const fetchImage = async (source: string | Buffer): Promise<Buffer> => {
     // If source is already a Buffer, return it
     if (Buffer.isBuffer(source)) {

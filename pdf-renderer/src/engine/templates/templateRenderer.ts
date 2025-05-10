@@ -1,6 +1,5 @@
-/**
- * Template configuration interface
- */
+/*** Template configuration interface*/
+
 interface Template {
     name: string;
     pageSize: [number, number] | string;
@@ -18,9 +17,8 @@ interface Template {
     defaultTextColor?: string;
 }
 
-/**
- * Map of available templates
- */
+/*** Map of available templates*/
+
 const templates: Record<string, Template> = {
     'default': {
         name: 'Default',
@@ -80,9 +78,8 @@ const templates: Record<string, Template> = {
     }
 };
 
-/**
- * Returns list of available templates
- */
+/*** Returns list of available templates*/
+
 export const getAvailableTemplates = () => {
     return Object.keys(templates).map(key => ({
         id: key,
@@ -91,9 +88,8 @@ export const getAvailableTemplates = () => {
     }));
 };
 
-/**
- * Simplified template renderer
- */
+/*** Simplified template renderer*/
+
 export const renderTemplate = (doc: PDFKit.PDFDocument, templateName: string): void => {
     // Get template (default to 'default' if not found)
     const template = templates[templateName] || templates['default'];
@@ -102,15 +98,14 @@ export const renderTemplate = (doc: PDFKit.PDFDocument, templateName: string): v
     console.log(`Applied template: ${template.name}`);
 };
 
-/**
- * Apply template settings to a page (to be called after a page is added)
- */
+/*** Apply template settings to a page (to be called after a page is added)*/
+
 export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: string, pageNumber: number, totalPages: number = 1): void => {
     // Get template (default to 'default' if not found)
     const template = templates[templateName] || templates['default'];
 
     try {
-        // Сохраняем текущее состояние перед применением шаблона
+        // Saving the current state before applying the template
         doc.save();
 
         // Set default font if specified
@@ -180,7 +175,7 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
             doc.y = originalY;
         }
 
-        // Восстанавливаем состояние после применения шаблона
+        // Restoring the state after applying the template
         doc.restore();
     } catch (error) {
         console.error('Error applying template to page:', error);

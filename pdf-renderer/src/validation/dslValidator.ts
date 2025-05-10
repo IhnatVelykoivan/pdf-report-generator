@@ -79,7 +79,7 @@ const elementSchema = Joi.object({
         'any.only': 'Element type must be one of: text, image, chart',
         'any.required': 'Element type is required'
     }),
-    // Разрешаем любое значение для content, без строгого типа
+    // Allowing any value for content, without strict typing
     content: Joi.any().required().messages({
         'any.required': 'Element content is required'
     }),

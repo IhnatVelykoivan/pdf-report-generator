@@ -1,23 +1,23 @@
-/**
- * Renders text to the PDF document with proper support for all characters including Cyrillic
- */
+/*** Renders text to the PDF document with proper support for all characters including Cyrillic*/
+
 export const renderText = (
     doc: PDFKit.PDFDocument,
     text: string,
     style: any = {}
 ): void => {
     try {
-        // Проверяем, что текст - это строка
+        // Checking that the text is a string
         if (typeof text !== 'string') {
             console.warn(`Text content is not a string: ${typeof text}`);
             text = String(text || '');
         }
 
-        // Сохраняем текущее состояние перед изменениями
+        // Saving the current state before changes
         doc.save();
 
-        // Применяем стили текста
-        // Убедимся, что используем шрифт с поддержкой кириллицы
+        // Applying text styles
+        // Making sure to use a font that supports Cyrillic characters
+
         if (style?.font) {
             try {
                 doc.font(style.font);
@@ -34,28 +34,28 @@ export const renderText = (
             doc.fillColor(style.color);
         }
 
-        // Настройки отображения текста
+        // Text display settings
         const options: PDFKit.Mixins.TextOptions = {
             width: style?.width,
             align: style?.align || 'left',
             lineBreak: style?.lineBreak !== false,
             underline: style?.underline || false,
-            // Настройки для улучшения отображения кириллицы
+            // Settings for better Cyrillic text rendering
             characterSpacing: 0,
             wordSpacing: 0,
             lineGap: style?.paragraphGap || 0
         };
 
-        // Для позиции используем указанное в элементе положение
+        // Using the position specified in the element for the placement
         if (style?.position) {
             // Position the text at the specified coordinates
             doc.text(text, style.position.x, style.position.y, options);
         } else {
-            // Отображаем текст в текущей позиции
+            // Displaying the text at the current position
             doc.text(text, options);
         }
 
-        // Восстанавливаем исходное состояние
+        // Restoring the original state
         doc.restore();
     } catch (error) {
         console.error('Error rendering text:', error);
