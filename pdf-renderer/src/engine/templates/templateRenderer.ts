@@ -1,5 +1,6 @@
-/*** Template configuration interface*/
-
+/**
+ * Template configuration interface
+ */
 interface Template {
     name: string;
     pageSize: [number, number] | string;
@@ -17,8 +18,9 @@ interface Template {
     defaultTextColor?: string;
 }
 
-/*** Map of available templates*/
-
+/**
+ * Map of available templates
+ */
 const templates: Record<string, Template> = {
     'default': {
         name: 'Default',
@@ -78,8 +80,9 @@ const templates: Record<string, Template> = {
     }
 };
 
-/*** Returns list of available templates*/
-
+/**
+ * Returns a list of available templates
+ */
 export const getAvailableTemplates = () => {
     return Object.keys(templates).map(key => ({
         id: key,
@@ -88,24 +91,26 @@ export const getAvailableTemplates = () => {
     }));
 };
 
-/*** Simplified template renderer*/
-
+/**
+ * Simplified template renderer
+ */
 export const renderTemplate = (doc: PDFKit.PDFDocument, templateName: string): void => {
     // Get template (default to 'default' if not found)
     const template = templates[templateName] || templates['default'];
 
-    // Log that template is applied
+    // Log that template was applied
     console.log(`Applied template: ${template.name}`);
 };
 
-/*** Apply template settings to a page (to be called after a page is added)*/
-
+/**
+ * Applies template settings to the page (called after adding a page)
+ */
 export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: string, pageNumber: number, totalPages: number = 1): void => {
     // Get template (default to 'default' if not found)
     const template = templates[templateName] || templates['default'];
 
     try {
-        // Saving the current state before applying the template
+        // Save current state before applying template
         doc.save();
 
         // Set default font if specified
@@ -113,7 +118,7 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
             try {
                 doc.font(template.defaultFontFamily);
             } catch (fontError) {
-                console.warn(`Template font not found: ${template.defaultFontFamily}, using default instead`);
+                console.warn(`Template font not found: ${template.defaultFontFamily}, using default font`);
             }
         }
 
@@ -132,8 +137,12 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
             // Get current position
             const originalY = doc.y;
 
-            // Set position to top of page
+            // Set position at the top of the page
             doc.y = template.margins.top / 2;
+
+            // Clear current page from metadata before adding header
+            // This code can help avoid "BBD0CÔ8Dd0 1 C„7 2" artifacts
+            const headerY = doc.y;
 
             // Format header text
             const headerText = template.header.text
@@ -143,7 +152,7 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
 
             // Add header text
             doc.fontSize(template.defaultFontSize ? template.defaultFontSize + 2 : 14)
-                .text(headerText, template.margins.left, doc.y, {
+                .text(headerText, template.margins.left, headerY, {
                     width: doc.page.width - template.margins.left - template.margins.right,
                     align: 'center'
                 });
@@ -157,6 +166,9 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
             // Save current position
             const originalY = doc.y;
 
+            // Clear current page from metadata before adding footer
+            const footerY = doc.page.height - template.margins.bottom - 20;
+
             // Format footer text
             const footerText = template.footer.text
                 .replace('{{pageNumber}}', pageNumber.toString())
@@ -165,17 +177,16 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
 
             // Add footer
             doc.fontSize(template.defaultFontSize ? template.defaultFontSize - 2 : 10)
-                .text(footerText, template.margins.left,
-                    doc.page.height - template.margins.bottom - 20, {
-                        width: doc.page.width - template.margins.left - template.margins.right,
-                        align: 'center'
-                    });
+                .text(footerText, template.margins.left, footerY, {
+                    width: doc.page.width - template.margins.left - template.margins.right,
+                    align: 'center'
+                });
 
             // Restore position
             doc.y = originalY;
         }
 
-        // Restoring the state after applying the template
+        // Restore state after applying template
         doc.restore();
     } catch (error) {
         console.error('Error applying template to page:', error);

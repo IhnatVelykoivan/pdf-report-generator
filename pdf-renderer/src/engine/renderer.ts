@@ -6,11 +6,12 @@ import { renderChart } from './charts/chartRenderer';
 import path from 'path';
 import fs from 'fs';
 
-// Setting the font path
+// Setting the path to fonts
 const fontPath = path.resolve(__dirname, '../../assets/fonts');
 
-/*** Applies page style to the PDF document*/
-
+/**
+ * Applies page style to PDF document
+ */
 const applyPageStyle = (doc: PDFKit.PDFDocument, style: any = {}): void => {
     try {
         // Set page size if specified
@@ -61,54 +62,57 @@ const applyPageStyle = (doc: PDFKit.PDFDocument, style: any = {}): void => {
     }
 };
 
-/*** Loads and registers fonts*/
-
+/**
+ * Loads and registers fonts
+ */
 const registerFonts = (doc: PDFKit.PDFDocument): void => {
     try {
-        // Checking the presence of the fonts directory
+        // Check if fonts directory exists
         if (fs.existsSync(fontPath)) {
-            // Registering a default Cyrillic font if the file exists
+            // Register font with Cyrillic support
             const opensansPath = path.join(fontPath, 'OpenSans-Regular.ttf');
             if (fs.existsSync(opensansPath)) {
-                // Important: register the font with embedding enabled
+                // Important: register font with the name we'll use
                 doc.registerFont('OpenSans', opensansPath);
-                console.log('OpenSans font registered successfully');
+                console.log('OpenSans font successfully registered');
 
-                // Immediately setting the default font
+                // Set default font immediately
                 doc.font('OpenSans');
             } else {
                 console.warn(`Font file not found: ${opensansPath}`);
             }
         } else {
-            console.warn(`Font directory not found: ${fontPath}`);
+            console.warn(`Fonts directory not found: ${fontPath}`);
         }
     } catch (error) {
         console.error('Error registering fonts:', error);
     }
 };
 
-/*** Renders DSL to PDF buffer*/
-
+/**
+ * Renders DSL to PDF buffer
+ */
 export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
         try {
-            // Create a PDF document with built-in font embedding
+            // Create PDF document with built-in font embedding
             const doc = new PDFDocument({
-                autoFirstPage: false, // Important: do not create the first page automatically
+                autoFirstPage: false, // Important: don't create first page automatically
                 bufferPages: true,
-                compress: true, // Enabling compression for a smaller file size
+                compress: true, // Enable compression for smaller file size
                 info: {
                     Title: 'Generated Document',
                     Creator: 'PDF Renderer Service',
-                    Producer: 'PDFKit',
-                    // Ensuring metadata correctly handles Unicode
-                    CreationDate: new Date()
+                    Producer: 'PDFKit'
                 },
-                font: 'Helvetica', // Initial default font
-                pdfVersion: '1.7', // Using a newer PDF version for better Unicode support
+                // Disable automatic page metadata decoration,
+                // which can cause artifacts to appear
+                margin: 0,
+                layout: 'portrait',
+                size: 'a4'
             });
 
-            // Registering fonts with Cyrillic support
+            // Register fonts with Cyrillic support
             registerFonts(doc);
 
             // Buffer to store PDF data
@@ -131,31 +135,31 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
                 reject(err);
             });
 
-            // Store template name for later use
+            // Save template name for later use
             const templateName = dsl.template || 'default';
 
             // Render template (just store info, don't apply yet)
             renderTemplate(doc, templateName);
 
-            // Calculating the total number of pages for replacement in the template
+            // Calculate total number of pages for template replacement
             const totalPages = dsl.pages?.length || 1;
 
             // Add pages and render content
             if (!dsl.pages || !Array.isArray(dsl.pages) || dsl.pages.length === 0) {
-                // If no pages, add an empty page
+                // If no pages, add empty page
                 doc.addPage();
                 applyTemplateToPage(doc, templateName, 1, 1);
                 doc.text('Empty document', 50, 50);
             } else {
                 // Process all pages
                 dsl.pages.forEach((page: any, pageIndex: number) => {
-                    // Add a new page
+                    // Add new page
                     doc.addPage();
 
                     // Apply template to this page
                     applyTemplateToPage(doc, templateName, pageIndex + 1, totalPages);
 
-                    // Apply page style if provided
+                    // Apply page style if specified
                     if (page.style) {
                         applyPageStyle(doc, page.style);
                     }
@@ -171,11 +175,11 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
                             const { type, content, position, style } = element;
 
                             try {
-                                // Render element based on type
+                                // Render element depending on type
                                 switch (type) {
                                     case 'text':
                                         if (typeof content === 'string') {
-                                            // Important: always use a font with Cyrillic support
+                                            // Important: always use font with Cyrillic support
                                             doc.font('OpenSans');
                                             renderText(doc, content, {
                                                 ...style,
@@ -183,7 +187,7 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
                                                 font: 'OpenSans'
                                             });
                                         } else {
-                                            // Trying to convert the content into a string
+                                            // Try to convert content to string
                                             try {
                                                 const stringContent = String(content || '');
                                                 console.warn(`Text content is not a string, converting: ${typeof content} -> string`);
@@ -219,7 +223,7 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
                 });
             }
 
-            // Finalize the document
+            // Finalize document
             doc.end();
         } catch (initialError) {
             console.error('Error initializing PDF generation:', initialError);

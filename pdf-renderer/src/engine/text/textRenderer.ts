@@ -1,28 +1,28 @@
-/*** Renders text to the PDF document with proper support for all characters including Cyrillic*/
-
+/**
+ * Renders text to PDF document with proper support for all characters, including Cyrillic
+ */
 export const renderText = (
     doc: PDFKit.PDFDocument,
     text: string,
     style: any = {}
 ): void => {
     try {
-        // Checking that the text is a string
+        // Check that text is a string
         if (typeof text !== 'string') {
             console.warn(`Text content is not a string: ${typeof text}`);
             text = String(text || '');
         }
 
-        // Saving the current state before changes
+        // Save current state before changes
         doc.save();
 
-        // Applying text styles
-        // Making sure to use a font that supports Cyrillic characters
-
+        // Apply text styles
+        // Make sure to use a font that supports Cyrillic characters
         if (style?.font) {
             try {
                 doc.font(style.font);
             } catch (fontError) {
-                console.warn(`Font not found: ${style.font}, using current font instead`);
+                console.warn(`Font not found: ${style.font}, using current font`);
             }
         }
 
@@ -40,22 +40,25 @@ export const renderText = (
             align: style?.align || 'left',
             lineBreak: style?.lineBreak !== false,
             underline: style?.underline || false,
-            // Settings for better Cyrillic text rendering
+            // Settings for better rendering of Cyrillic text
             characterSpacing: 0,
             wordSpacing: 0,
             lineGap: style?.paragraphGap || 0
         };
 
-        // Using the position specified in the element for the placement
+        // Use position specified in the element for placement
         if (style?.position) {
-            // Position the text at the specified coordinates
+            // Clear metadata before rendering text
+            // This code can help avoid "BBD0CÔ8Dd0 1 C„7 2" artifacts
+
+            // Position text at specified coordinates
             doc.text(text, style.position.x, style.position.y, options);
         } else {
-            // Displaying the text at the current position
+            // Display text at current position
             doc.text(text, options);
         }
 
-        // Restoring the original state
+        // Restore original state
         doc.restore();
     } catch (error) {
         console.error('Error rendering text:', error);
@@ -65,7 +68,7 @@ export const renderText = (
                 .fillColor('#FF0000')
                 .text(`Error rendering text: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } catch (fallbackError) {
-            console.error('Failed to render error message:', fallbackError);
+            console.error('Failed to display error message:', fallbackError);
         }
     }
 };
