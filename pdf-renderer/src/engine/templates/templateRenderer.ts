@@ -34,7 +34,7 @@ const templates: Record<string, Template> = {
             text: 'Page {{pageNumber}} of {{totalPages}}',
             height: 20
         },
-        defaultFontFamily: 'OpenSans',
+        defaultFontFamily: 'DejaVuSans',
         defaultFontSize: 12,
         defaultTextColor: '#000000'
     },
@@ -42,7 +42,7 @@ const templates: Record<string, Template> = {
         name: 'Minimal',
         pageSize: 'a4',
         margins: { top: 20, bottom: 20, left: 20, right: 20 },
-        defaultFontFamily: 'OpenSans',
+        defaultFontFamily: 'DejaVuSans',
         defaultFontSize: 10,
         defaultTextColor: '#333333'
     },
@@ -58,7 +58,7 @@ const templates: Record<string, Template> = {
             text: 'Generated on {{date}} | Page {{pageNumber}} of {{totalPages}}',
             height: 30
         },
-        defaultFontFamily: 'OpenSans',
+        defaultFontFamily: 'DejaVuSans',
         defaultFontSize: 12,
         defaultTextColor: '#000000'
     },
@@ -74,7 +74,7 @@ const templates: Record<string, Template> = {
             text: 'Страница {{pageNumber}} из {{totalPages}}',
             height: 20
         },
-        defaultFontFamily: 'OpenSans',
+        defaultFontFamily: 'DejaVuSans',
         defaultFontSize: 12,
         defaultTextColor: '#000000'
     }
@@ -134,15 +134,15 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
 
         // Add header if defined
         if (template.header && template.header.text) {
-            // Get current position
-            const originalY = doc.y;
+            // Try to use DejaVuSans for better support
+            try {
+                doc.font('DejaVuSans');
+            } catch (e) {
+                // Fallback to default font if DejaVuSans isn't available
+            }
 
-            // Set position at the top of the page
-            doc.y = template.margins.top / 2;
-
-            // Clear current page from metadata before adding header
-            // This code can help avoid "BBD0CÔ8Dd0 1 C„7 2" artifacts
-            const headerY = doc.y;
+            // Calculate proper position
+            const headerY = template.margins.top / 2;
 
             // Format header text
             const headerText = template.header.text
@@ -150,24 +150,27 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
                 .replace('{{totalPages}}', totalPages.toString())
                 .replace('{{date}}', new Date().toLocaleDateString());
 
-            // Add header text
+            // Add header text with proper styling
             doc.fontSize(template.defaultFontSize ? template.defaultFontSize + 2 : 14)
-                .text(headerText, template.margins.left, headerY, {
-                    width: doc.page.width - template.margins.left - template.margins.right,
-                    align: 'center'
+                .fillColor('#000000')
+                .text(headerText, doc.page.margins.left, headerY, {
+                    width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+                    align: 'center',
+                    lineBreak: false
                 });
-
-            // Restore position
-            doc.y = originalY;
         }
 
         // Add footer if defined
         if (template.footer && template.footer.text) {
-            // Save current position
-            const originalY = doc.y;
+            // Try to use DejaVuSans for better support
+            try {
+                doc.font('DejaVuSans');
+            } catch (e) {
+                // Fallback to default font if DejaVuSans isn't available
+            }
 
-            // Clear current page from metadata before adding footer
-            const footerY = doc.page.height - template.margins.bottom - 20;
+            // Calculate footer position with safe margins
+            const footerY = doc.page.height - doc.page.margins.bottom - 20; // More space to avoid cutting off
 
             // Format footer text
             const footerText = template.footer.text
@@ -175,15 +178,14 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
                 .replace('{{totalPages}}', totalPages.toString())
                 .replace('{{date}}', new Date().toLocaleDateString());
 
-            // Add footer
+            // Add footer with clear formatting
             doc.fontSize(template.defaultFontSize ? template.defaultFontSize - 2 : 10)
-                .text(footerText, template.margins.left, footerY, {
-                    width: doc.page.width - template.margins.left - template.margins.right,
-                    align: 'center'
+                .fillColor('#000000')
+                .text(footerText, doc.page.margins.left, footerY, {
+                    width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+                    align: 'center',
+                    lineBreak: false
                 });
-
-            // Restore position
-            doc.y = originalY;
         }
 
         // Restore state after applying template

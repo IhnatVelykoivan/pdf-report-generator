@@ -31,7 +31,9 @@ const textStyleSchema = Joi.object({
     lineBreak: Joi.boolean().optional(),
     underline: Joi.boolean().optional(),
     paragraphGap: Joi.number().optional(),
-    resetStyle: Joi.boolean().optional()
+    resetStyle: Joi.boolean().optional(),
+    // Add support for bidirectional text
+    direction: Joi.string().valid('ltr', 'rtl').optional()
 });
 
 /*** Schema for image element style validation*/
@@ -50,7 +52,9 @@ const chartStyleSchema = Joi.object({
     height: Joi.number().optional(),
     backgroundColor: Joi.string().optional(),
     borderColor: Joi.string().optional(),
-    borderWidth: Joi.number().optional()
+    borderWidth: Joi.number().optional(),
+    // Add support for RTL direction in charts
+    direction: Joi.string().valid('ltr', 'rtl').optional()
 });
 
 /*** Schema for page style validation*/
@@ -69,7 +73,51 @@ const pageStyleSchema = Joi.object({
             right: Joi.number().optional()
         })
     ).optional(),
-    backgroundColor: Joi.string().optional()
+    backgroundColor: Joi.string().optional(),
+    // Add support for specifying default text direction for the page
+    direction: Joi.string().valid('ltr', 'rtl').optional()
+});
+
+/*** Schema for chart content validation with RTL support*/
+
+const chartContentSchema = Joi.object({
+    type: Joi.string().valid('bar', 'line', 'pie').required(),
+    title: Joi.string().optional(),
+    textDirection: Joi.string().valid('ltr', 'rtl').optional(),
+    data: Joi.object({
+        labels: Joi.array().items(Joi.string()).required(),
+        datasets: Joi.array().items(
+            Joi.object({
+                label: Joi.string().optional(),
+                data: Joi.array().items(Joi.number()).required(),
+                backgroundColor: Joi.alternatives().try(
+                    Joi.string(),
+                    Joi.array().items(Joi.string())
+                ).optional(),
+                borderColor: Joi.alternatives().try(
+                    Joi.string(),
+                    Joi.array().items(Joi.string())
+                ).optional(),
+                borderWidth: Joi.number().optional()
+            })
+        ).required()
+    }).required(),
+    options: Joi.object({
+        responsive: Joi.boolean().optional(),
+        animation: Joi.alternatives().try(
+            Joi.boolean(),
+            Joi.object({
+                duration: Joi.number()
+            })
+        ).optional(),
+        scales: Joi.object().optional(),
+        rtl: Joi.boolean().optional(),
+        font: Joi.object({
+            family: Joi.string().optional(),
+            size: Joi.number().optional(),
+            style: Joi.string().optional()
+        }).optional()
+    }).optional()
 });
 
 /*** Schema for element validation*/
@@ -79,8 +127,11 @@ const elementSchema = Joi.object({
         'any.only': 'Element type must be one of: text, image, chart',
         'any.required': 'Element type is required'
     }),
-    // Allowing any value for content, without strict typing
-    content: Joi.any().required().messages({
+    content: Joi.alternatives().conditional('type', {
+        is: 'chart',
+        then: chartContentSchema,
+        otherwise: Joi.any().required()
+    }).required().messages({
         'any.required': 'Element content is required'
     }),
     position: positionSchema.required().messages({
@@ -111,6 +162,10 @@ const pageSchema = Joi.object({
 
 const dslSchema = Joi.object({
     template: Joi.string().optional(),
+    // Add support for specifying default font with better Arabic support
+    defaultFont: Joi.string().optional(),
+    // Add support for specifying default text direction for the entire document
+    defaultDirection: Joi.string().valid('ltr', 'rtl').optional(),
     pages: Joi.array().items(pageSchema).required().messages({
         'array.base': 'Pages must be an array',
         'any.required': 'Pages are required'
@@ -151,6 +206,21 @@ export const validateDSL = (dsl: any): ValidationResult => {
         const page = dsl.pages[i];
         if (!page.elements || page.elements.length === 0) {
             errors.push(`Page ${i + 1} must have at least one element`);
+        }
+    }
+
+    // Validate that chart types are supported
+    for (let i = 0; i < (dsl.pages || []).length; i++) {
+        const page = dsl.pages[i];
+        if (page.elements) {
+            for (let j = 0; j < page.elements.length; j++) {
+                const element = page.elements[j];
+                if (element.type === 'chart' && element.content) {
+                    if (!['bar', 'line', 'pie'].includes(element.content.type)) {
+                        errors.push(`Chart type '${element.content.type}' on page ${i + 1}, element ${j + 1} is not supported. Supported types are: bar, line, pie`);
+                    }
+                }
+            }
         }
     }
 

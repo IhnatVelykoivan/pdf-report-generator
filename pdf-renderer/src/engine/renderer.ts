@@ -3,6 +3,7 @@ import { renderTemplate, applyTemplateToPage } from './templates/templateRendere
 import { renderText } from './text/textRenderer';
 import { renderImage } from './images/imageRenderer';
 import { renderChart } from './charts/chartRenderer';
+import { containsRTL, isArabicOnly } from '../utils/bidirectionalTextUtil';
 import path from 'path';
 import fs from 'fs';
 
@@ -63,23 +64,66 @@ const applyPageStyle = (doc: PDFKit.PDFDocument, style: any = {}): void => {
 };
 
 /**
- * Loads and registers fonts
+ * Loads and registers fonts with priority order
  */
 const registerFonts = (doc: PDFKit.PDFDocument): void => {
     try {
         // Check if fonts directory exists
         if (fs.existsSync(fontPath)) {
-            // Register font with Cyrillic support
-            const opensansPath = path.join(fontPath, 'OpenSans-Regular.ttf');
-            if (fs.existsSync(opensansPath)) {
-                // Important: register font with the name we'll use
-                doc.registerFont('OpenSans', opensansPath);
-                console.log('OpenSans font successfully registered');
+            // Register fonts with multilingual support including Arabic and Cyrillic
+            const fontFiles = [
+                { name: 'NotoSansArabic', path: 'NotoSansArabic-Regular.ttf' },
+                { name: 'NotoSansArabic-Bold', path: 'NotoSansArabic-Bold.ttf' },
+                { name: 'DejaVuSans', path: 'DejaVuSans.ttf' },
+                { name: 'DejaVuSans-Bold', path: 'DejaVuSans-Bold.ttf' },
+                { name: 'DejaVuSans-Oblique', path: 'DejaVuSans-Oblique.ttf' },
+                { name: 'Amiri', path: 'Amiri-Regular.ttf' },
+                { name: 'Amiri-Bold', path: 'Amiri-Bold.ttf' },
+                { name: 'OpenSans', path: 'OpenSans-Regular.ttf' },
+                { name: 'OpenSans-Bold', path: 'OpenSans-Bold.ttf' }
+            ];
 
-                // Set default font immediately
-                doc.font('OpenSans');
-            } else {
-                console.warn(`Font file not found: ${opensansPath}`);
+            // Registered fonts for control
+            const registeredFonts: string[] = [];
+
+            for (const font of fontFiles) {
+                const fontFilePath = path.join(fontPath, font.path);
+
+                if (fs.existsSync(fontFilePath)) {
+                    try {
+                        // Register the font under the name we'll use
+                        doc.registerFont(font.name, fontFilePath);
+                        registeredFonts.push(font.name);
+                        console.log(`Font ${font.name} successfully registered`);
+                    } catch (err) {
+                        console.warn(`Could not register font ${font.name}:`, err);
+                    }
+                } else {
+                    console.warn(`Font file not found: ${fontFilePath}`);
+                }
+            }
+
+            // Check if fonts with Arabic support were successfully registered
+            const arabicFonts = ['NotoSansArabic', 'DejaVuSans', 'Amiri'];
+            const hasArabicFont = arabicFonts.some(font => registeredFonts.includes(font));
+
+            if (!hasArabicFont) {
+                console.warn('No fonts with Arabic support were registered. RTL text may display incorrectly.');
+            }
+
+            // Set default font
+            const defaultFontPriority = ['DejaVuSans', 'NotoSansArabic', 'OpenSans'];
+
+            for (const fontName of defaultFontPriority) {
+                if (registeredFonts.includes(fontName)) {
+                    try {
+                        doc.font(fontName);
+                        console.log(`Using ${fontName} as default font`);
+                        break;
+                    } catch (e) {
+                        console.warn(`Failed to set ${fontName} as default`);
+                    }
+                }
             }
         } else {
             console.warn(`Fonts directory not found: ${fontPath}`);
@@ -95,24 +139,23 @@ const registerFonts = (doc: PDFKit.PDFDocument): void => {
 export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
         try {
-            // Create PDF document with built-in font embedding
+            // Create PDF document with enhanced settings
             const doc = new PDFDocument({
-                autoFirstPage: false, // Important: don't create first page automatically
+                autoFirstPage: false, // Don't create first page automatically
                 bufferPages: true,
-                compress: true, // Enable compression for smaller file size
+                compress: true,
                 info: {
                     Title: 'Generated Document',
                     Creator: 'PDF Renderer Service',
                     Producer: 'PDFKit'
                 },
-                // Disable automatic page metadata decoration,
-                // which can cause artifacts to appear
+                // Disable page decorations to avoid artifacts
                 margin: 0,
                 layout: 'portrait',
                 size: 'a4'
             });
 
-            // Register fonts with Cyrillic support
+            // Register fonts with multilingual support
             registerFonts(doc);
 
             // Buffer to store PDF data
@@ -138,23 +181,37 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
             // Save template name for later use
             const templateName = dsl.template || 'default';
 
-            // Render template (just store info, don't apply yet)
+            // Set document default font if specified
+            if (dsl.defaultFont && typeof dsl.defaultFont === 'string') {
+                try {
+                    doc.font(dsl.defaultFont);
+                    console.log(`Using ${dsl.defaultFont} as document default font`);
+                } catch (fontError) {
+                    console.warn(`Default font not found: ${dsl.defaultFont}, using system default`);
+                }
+            }
+
+            // Initialize template
             renderTemplate(doc, templateName);
 
             // Calculate total number of pages for template replacement
             const totalPages = dsl.pages?.length || 1;
 
+            // Add first page automatically to avoid blank pages
+            doc.addPage();
+
             // Add pages and render content
             if (!dsl.pages || !Array.isArray(dsl.pages) || dsl.pages.length === 0) {
-                // If no pages, add empty page
-                doc.addPage();
+                // Apply template to first page
                 applyTemplateToPage(doc, templateName, 1, 1);
                 doc.text('Empty document', 50, 50);
             } else {
                 // Process all pages
                 dsl.pages.forEach((page: any, pageIndex: number) => {
-                    // Add new page
-                    doc.addPage();
+                    // Only add a new page if not the first one
+                    if (pageIndex > 0) {
+                        doc.addPage();
+                    }
 
                     // Apply template to this page
                     applyTemplateToPage(doc, templateName, pageIndex + 1, totalPages);
@@ -162,6 +219,12 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
                     // Apply page style if specified
                     if (page.style) {
                         applyPageStyle(doc, page.style);
+                    }
+
+                    // Calculate document language direction (RTL/LTR)
+                    let isDocRTL = false;
+                    if (dsl.defaultDirection === 'rtl') {
+                        isDocRTL = true;
                     }
 
                     // Process each element on the page
@@ -175,27 +238,72 @@ export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
                             const { type, content, position, style } = element;
 
                             try {
+                                // Set default font for each element based on content
+                                let defaultFont = '';
+
+                                // Check if content contains RTL text
+                                let isRTL = style?.direction === 'rtl';
+
+                                if (!isRTL && typeof content === 'string') {
+                                    // If direction not explicitly specified in style, check content
+                                    if (containsRTL(content)) {
+                                        isRTL = true;
+                                    }
+                                }
+
+                                // Choose appropriate font
+                                if (isRTL) {
+                                    // Priority fonts for RTL
+                                    const rtlFonts = ['NotoSansArabic', 'DejaVuSans', 'Amiri'];
+
+                                    // Check if text is fully Arabic
+                                    const isFullArabic = typeof content === 'string' && isArabicOnly(content);
+
+                                    // For fully Arabic text choose NotoSansArabic
+                                    defaultFont = isFullArabic ? 'NotoSansArabic' : 'DejaVuSans';
+                                } else {
+                                    defaultFont = 'OpenSans';
+                                }
+
+                                // Try to set the font
+                                try {
+                                    doc.font(style?.font || defaultFont);
+                                } catch (fontError) {
+                                    console.warn(`Could not load font ${style?.font || defaultFont}, falling back`);
+
+                                    // Try to load suitable font from the list
+                                    const fontList = isRTL
+                                        ? ['NotoSansArabic', 'DejaVuSans', 'Amiri']
+                                        : ['OpenSans', 'DejaVuSans'];
+
+                                    for (const fontName of fontList) {
+                                        try {
+                                            doc.font(fontName);
+                                            console.log(`Using fallback font: ${fontName}`);
+                                            break;
+                                        } catch (e) {
+                                            // Continue attempts
+                                        }
+                                    }
+                                }
                                 // Render element depending on type
                                 switch (type) {
                                     case 'text':
                                         if (typeof content === 'string') {
-                                            // Important: always use font with Cyrillic support
-                                            doc.font('OpenSans');
                                             renderText(doc, content, {
                                                 ...style,
                                                 position,
-                                                font: 'OpenSans'
+                                                direction: style?.direction || (isRTL ? 'rtl' : 'ltr')
                                             });
                                         } else {
                                             // Try to convert content to string
                                             try {
                                                 const stringContent = String(content || '');
                                                 console.warn(`Text content is not a string, converting: ${typeof content} -> string`);
-                                                doc.font('OpenSans');
                                                 renderText(doc, stringContent, {
                                                     ...style,
                                                     position,
-                                                    font: 'OpenSans'
+                                                    direction: style?.direction || (isRTL ? 'rtl' : 'ltr')
                                                 });
                                             } catch (textError) {
                                                 console.error('Failed to convert text content to string:', textError);

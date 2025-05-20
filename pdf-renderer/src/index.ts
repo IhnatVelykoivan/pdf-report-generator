@@ -4,7 +4,7 @@ import cors from 'cors';
 import { apiRouter } from './api/routes';
 
 const app = express();
-const PORT = process.env.PORT || 3001; // Изменено с 3000 на 3001
+const PORT = process.env.PORT || 3001; // Changed from 3000 to 3001
 
 // Middleware
 app.use(cors());
