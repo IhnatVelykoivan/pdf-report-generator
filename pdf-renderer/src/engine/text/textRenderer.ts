@@ -9,6 +9,63 @@ interface TextRenderPosition {
     y: number;
 }
 
+/**
+ * Преобразует цвет в формат, понятный PDFKit
+ */
+const convertColor = (color: string): string => {
+    if (!color) return '#000000';
+
+    // Если цвет уже в hex формате
+    if (color.startsWith('#')) {
+        return color;
+    }
+
+    // Если цвет в формате rgba или rgb
+    if (color.startsWith('rgba') || color.startsWith('rgb')) {
+        const matches = color.match(/\d+/g);
+        if (matches && matches.length >= 3) {
+            const r = parseInt(matches[0]);
+            const g = parseInt(matches[1]);
+            const b = parseInt(matches[2]);
+
+            // Конвертируем в hex
+            const toHex = (n: number) => {
+                const hex = n.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            };
+
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+    }
+
+    // Проверяем на именованные цвета и конвертируем их
+    const namedColors: Record<string, string> = {
+        'black': '#000000',
+        'white': '#FFFFFF',
+        'red': '#FF0000',
+        'green': '#008000',
+        'blue': '#0000FF',
+        'yellow': '#FFFF00',
+        'cyan': '#00FFFF',
+        'magenta': '#FF00FF',
+        'gray': '#808080',
+        'grey': '#808080',
+        'darkgray': '#404040',
+        'darkgrey': '#404040',
+        'lightgray': '#C0C0C0',
+        'lightgrey': '#C0C0C0'
+    };
+
+    const lowerColor = color.toLowerCase();
+    if (namedColors[lowerColor]) {
+        return namedColors[lowerColor];
+    }
+
+    // Если не можем распознать, возвращаем черный
+    console.warn(`Unknown color format: ${color}, using black`);
+    return '#000000';
+};
+
 export const renderText = (
     doc: PDFKit.PDFDocument,
     text: string,
@@ -71,8 +128,11 @@ export const renderText = (
             doc.fontSize(style.fontSize);
         }
 
+        // Применяем цвет с правильной конвертацией
         if (style?.color) {
-            doc.fillColor(style.color);
+            const convertedColor = convertColor(style.color);
+            doc.fillColor(convertedColor);
+            console.log(`Applied text color: ${style.color} -> ${convertedColor}`);
         }
 
         // Set options for text

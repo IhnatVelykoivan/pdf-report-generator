@@ -1,8 +1,10 @@
 import PDFDocument from 'pdfkit';
 import { fetchImage } from '../../utils/imageUtils';
+import { convertColorToHex } from '../../utils/colorUtils';
 
-/*** Renders an image to the PDF document*/
-
+/**
+ * Renders an image to the PDF document
+ */
 export const renderImage = async (
     doc: PDFKit.PDFDocument,
     imageData: string | Buffer,
@@ -39,14 +41,36 @@ export const renderImage = async (
         doc.restore();
     } catch (error) {
         console.error('Error rendering image:', error);
+
         // Render placeholder for failed image with clear formatting
+        const placeholderWidth = style?.width || 100;
+        const placeholderHeight = style?.height || 100;
+
+        // Define placeholder colors
+        const borderColor = convertColorToHex('#CCCCCC');
+        const backgroundColor = convertColorToHex('#F5F5F5');
+        const textColor = convertColorToHex('#FF0000');
+
         doc.save()
-            .rect(position.x, position.y, 100, 100)
+            // Draw placeholder background
+            .fillColor(backgroundColor)
+            .rect(position.x, position.y, placeholderWidth, placeholderHeight)
+            .fill()
+            // Draw border
+            .strokeColor(borderColor)
             .lineWidth(1)
+            .rect(position.x, position.y, placeholderWidth, placeholderHeight)
             .stroke()
+            // Add error text
             .fontSize(12)
-            .fillColor('#FF0000')
-            .text('Image Error', position.x + 20, position.y + 40)
+            .fillColor(textColor)
+            .text('Image Error',
+                position.x + placeholderWidth / 2 - 30,
+                position.y + placeholderHeight / 2 - 6,
+                {
+                    width: placeholderWidth - 10,
+                    align: 'center'
+                })
             .restore();
     }
 };

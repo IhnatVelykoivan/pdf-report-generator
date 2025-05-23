@@ -25,58 +25,58 @@ const templates: Record<string, Template> = {
     'default': {
         name: 'Default',
         pageSize: 'a4',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        margins: { top: 70, bottom: 70, left: 50, right: 50 },
         header: {
             text: 'Generated Document',
-            height: 30
+            height: 40
         },
         footer: {
             text: 'Page {{pageNumber}} of {{totalPages}}',
-            height: 20
+            height: 30
         },
         defaultFontFamily: 'DejaVuSans',
         defaultFontSize: 12,
-        defaultTextColor: '#000000'
+        defaultTextColor: '#2C3E50'
     },
     'minimal': {
         name: 'Minimal',
         pageSize: 'a4',
-        margins: { top: 20, bottom: 20, left: 20, right: 20 },
+        margins: { top: 30, bottom: 30, left: 20, right: 20 },
         defaultFontFamily: 'DejaVuSans',
         defaultFontSize: 10,
-        defaultTextColor: '#333333'
+        defaultTextColor: '#34495E'
     },
     'report': {
         name: 'Report',
         pageSize: 'letter',
-        margins: { top: 60, bottom: 60, left: 60, right: 60 },
+        margins: { top: 80, bottom: 80, left: 60, right: 60 },
         header: {
             text: 'Confidential Report',
-            height: 40
+            height: 50
         },
         footer: {
             text: 'Generated on {{date}} | Page {{pageNumber}} of {{totalPages}}',
-            height: 30
+            height: 40
         },
         defaultFontFamily: 'DejaVuSans',
         defaultFontSize: 12,
-        defaultTextColor: '#000000'
+        defaultTextColor: '#2C3E50'
     },
     'cyrillic': {
         name: 'Cyrillic',
         pageSize: 'a4',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        margins: { top: 70, bottom: 70, left: 50, right: 50 },
         header: {
             text: 'Документ с кириллицей',
-            height: 30
+            height: 40
         },
         footer: {
             text: 'Страница {{pageNumber}} из {{totalPages}}',
-            height: 20
+            height: 30
         },
         defaultFontFamily: 'DejaVuSans',
         defaultFontSize: 12,
-        defaultTextColor: '#000000'
+        defaultTextColor: '#2C3E50'
     }
 };
 
@@ -92,24 +92,26 @@ export const getAvailableTemplates = () => {
 };
 
 /**
- * Simplified template renderer
+ * Simplified template renderer - DOES NOT CREATE PAGES, ONLY LOGS
  */
 export const renderTemplate = (doc: PDFKit.PDFDocument, templateName: string): void => {
     // Get template (default to 'default' if not found)
     const template = templates[templateName] || templates['default'];
 
-    // Log that template was applied
-    console.log(`Applied template: ${template.name}`);
+    // ONLY log template application - DO NOT CREATE PAGES!
+    console.log(`Template ${template.name} initialized (no pages created)`);
 };
 
 /**
- * Applies template settings to the page (called after adding a page)
+ * Applies template settings to the EXISTING page - DOES NOT CREATE NEW PAGES
  */
 export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: string, pageNumber: number, totalPages: number = 1): void => {
     // Get template (default to 'default' if not found)
     const template = templates[templateName] || templates['default'];
 
     try {
+        console.log(`Applying template ${template.name} to existing page ${pageNumber}`);
+
         // Save current state before applying template
         doc.save();
 
@@ -119,6 +121,11 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
                 doc.font(template.defaultFontFamily);
             } catch (fontError) {
                 console.warn(`Template font not found: ${template.defaultFontFamily}, using default font`);
+                try {
+                    doc.font('DejaVuSans');
+                } catch (e) {
+                    doc.font('Helvetica');
+                }
             }
         }
 
@@ -132,17 +139,15 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
             doc.fillColor(template.defaultTextColor);
         }
 
-        // Add header if defined
+        // Add header if defined - ON EXISTING PAGE
         if (template.header && template.header.text) {
-            // Try to use DejaVuSans for better support
             try {
                 doc.font('DejaVuSans');
             } catch (e) {
-                // Fallback to default font if DejaVuSans isn't available
+                doc.font('Helvetica');
             }
 
-            // Calculate proper position
-            const headerY = template.margins.top / 2;
+            const headerY = 25;
 
             // Format header text
             const headerText = template.header.text
@@ -150,27 +155,32 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
                 .replace('{{totalPages}}', totalPages.toString())
                 .replace('{{date}}', new Date().toLocaleDateString());
 
-            // Add header text with proper styling
-            doc.fontSize(template.defaultFontSize ? template.defaultFontSize + 2 : 14)
-                .fillColor('#000000')
-                .text(headerText, doc.page.margins.left, headerY, {
-                    width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+            // Add header text
+            doc.fontSize(14)
+                .fillColor('#34495E')
+                .text(headerText, template.margins.left, headerY, {
+                    width: doc.page.width - template.margins.left - template.margins.right,
                     align: 'center',
                     lineBreak: false
                 });
+
+            // Add line under header
+            doc.strokeColor('#BDC3C7')
+                .lineWidth(0.5)
+                .moveTo(template.margins.left, headerY + 25)
+                .lineTo(doc.page.width - template.margins.right, headerY + 25)
+                .stroke();
         }
 
-        // Add footer if defined
+        // Add footer if defined - ON EXISTING PAGE
         if (template.footer && template.footer.text) {
-            // Try to use DejaVuSans for better support
             try {
                 doc.font('DejaVuSans');
             } catch (e) {
-                // Fallback to default font if DejaVuSans isn't available
+                doc.font('Helvetica');
             }
 
-            // Calculate footer position with safe margins
-            const footerY = doc.page.height - doc.page.margins.bottom - 20; // More space to avoid cutting off
+            const footerY = doc.page.height - 35;
 
             // Format footer text
             const footerText = template.footer.text
@@ -178,11 +188,18 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
                 .replace('{{totalPages}}', totalPages.toString())
                 .replace('{{date}}', new Date().toLocaleDateString());
 
-            // Add footer with clear formatting
-            doc.fontSize(template.defaultFontSize ? template.defaultFontSize - 2 : 10)
-                .fillColor('#000000')
-                .text(footerText, doc.page.margins.left, footerY, {
-                    width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+            // Add line above footer
+            doc.strokeColor('#BDC3C7')
+                .lineWidth(0.5)
+                .moveTo(template.margins.left, footerY - 10)
+                .lineTo(doc.page.width - template.margins.right, footerY - 10)
+                .stroke();
+
+            // Add footer text
+            doc.fontSize(10)
+                .fillColor('#7F8C8D')
+                .text(footerText, template.margins.left, footerY, {
+                    width: doc.page.width - template.margins.left - template.margins.right,
                     align: 'center',
                     lineBreak: false
                 });
@@ -190,7 +207,9 @@ export const applyTemplateToPage = (doc: PDFKit.PDFDocument, templateName: strin
 
         // Restore state after applying template
         doc.restore();
+
+        console.log(`Successfully applied template to page ${pageNumber}`);
     } catch (error) {
-        console.error('Error applying template to page:', error);
+        console.error(`Error applying template to page ${pageNumber}:`, error);
     }
 };

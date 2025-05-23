@@ -1,212 +1,249 @@
 const multilingualTestDSL = {
     template: "default",
-    defaultFont: "NotoSansArabic", // Setting a font that supports both Arabic and English
+    defaultFont: "DejaVuSans",
+    defaultDirection: "ltr",
     pages: [
         {
             elements: [
                 {
                     type: "text",
                     content: "Multilingual PDF Document",
-                    position: { x: 50, y: 50 },
+                    position: { x: 50, y: 100 }, // Start below template header
                     style: {
                         fontSize: 24,
-                        color: "#000000",
-                        font: "DejaVuSans-Bold"
+                        color: "#2C3E50",
+                        font: "DejaVuSans-Bold",
+                        width: 495 // Limit width
                     }
                 },
                 {
                     type: "text",
                     content: "English (Left-to-Right)",
-                    position: { x: 50, y: 90 },
+                    position: { x: 50, y: 140 },
                     style: {
                         fontSize: 16,
-                        color: "#333333",
+                        color: "#34495E",
                         font: "DejaVuSans-Bold"
                     }
                 },
                 {
                     type: "text",
                     content: "This is a test document that demonstrates multilingual support in our PDF Renderer Service. The service supports both left-to-right languages like English and right-to-left languages like Arabic.",
-                    position: { x: 50, y: 120 },
+                    position: { x: 50, y: 170 },
                     style: {
                         fontSize: 12,
-                        color: "#333333",
-                        width: 500
+                        color: "#2C3E50",
+                        width: 495,
+                        lineBreak: true
                     }
                 },
                 {
                     type: "text",
                     content: "العربية (من اليمين إلى اليسار)",
-                    position: { x: 50, y: 200 },
+                    position: { x: 50, y: 230 },
                     style: {
                         fontSize: 16,
-                        color: "#333333",
+                        color: "#E74C3C",
                         direction: "rtl",
-                        font: "DejaVuSans-Bold"
+                        font: "DejaVuSans-Bold",
+                        width: 495,
+                        align: "right"
                     }
                 },
                 {
                     type: "text",
                     content: "هذه وثيقة اختبار توضح دعم اللغات المتعددة في خدمة عرض PDF الخاصة بنا. تدعم الخدمة كلاً من اللغات من اليسار إلى اليمين مثل الإنجليزية واللغات من اليمين إلى اليسار مثل العربية.",
-                    position: { x: 50, y: 230 },
+                    position: { x: 50, y: 260 },
                     style: {
                         fontSize: 12,
-                        color: "#333333",
-                        width: 500,
+                        color: "#8E44AD",
+                        width: 495,
                         direction: "rtl",
-                        font: "DejaVuSans"
+                        font: "DejaVuSans",
+                        align: "right",
+                        lineBreak: true
                     }
                 },
                 {
                     type: "text",
                     content: "Mixed Content / محتوى مختلط",
-                    position: { x: 50, y: 310 },
+                    position: { x: 50, y: 340 },
                     style: {
                         fontSize: 16,
-                        color: "#333333",
+                        color: "#16A085",
                         font: "DejaVuSans-Bold"
                     }
                 },
                 {
                     type: "text",
                     content: "This document contains both English (LTR) and Arabic (RTL) text. هذه الوثيقة تحتوي على نص إنجليزي (من اليسار إلى اليمين) وعربي (من اليمين إلى اليسار).",
-                    position: { x: 50, y: 340 },
+                    position: { x: 50, y: 370 },
                     style: {
                         fontSize: 12,
-                        color: "#333333",
-                        width: 500
+                        color: "#2C3E50",
+                        width: 495,
+                        lineBreak: true
                     }
                 },
                 {
                     type: "chart",
                     content: {
                         type: "bar",
-                        title: "Sales Data / بيانات المبيعات",
+                        title: "Sales Data",
                         data: {
-                            labels: ["Jan/يناير", "Feb/فبراير", "Mar/مارس", "Apr/أبريل", "May/مايو"],
+                            labels: ["Jan", "Feb", "Mar", "Apr", "May"],
                             datasets: [{
-                                label: "Sales 2023 / مبيعات ٢٠٢٣",
-                                data: [12, 19, 3, 5, 2],
+                                label: "Sales 2023",
+                                data: [12, 19, 8, 5, 15],
                                 backgroundColor: [
-                                    'rgba(255, 99, 132, 0.2)',
-                                    'rgba(54, 162, 235, 0.2)',
-                                    'rgba(255, 206, 86, 0.2)',
-                                    'rgba(75, 192, 192, 0.2)',
-                                    'rgba(153, 102, 255, 0.2)'
+                                    '#E74C3C',
+                                    '#3498DB',
+                                    '#F39C12',
+                                    '#27AE60',
+                                    '#9B59B6'
                                 ],
                                 borderColor: [
-                                    'rgba(255, 99, 132, 1)',
-                                    'rgba(54, 162, 235, 1)',
-                                    'rgba(255, 206, 86, 1)',
-                                    'rgba(75, 192, 192, 1)',
-                                    'rgba(153, 102, 255, 1)'
+                                    '#C0392B',
+                                    '#2980B9',
+                                    '#E67E22',
+                                    '#229954',
+                                    '#8E44AD'
                                 ],
-                                borderWidth: 1
+                                borderWidth: 2
                             }]
+                        },
+                        options: {
+                            responsive: false,
+                            animation: false
                         }
                     },
-                    position: { x: 50, y: 400 },
+                    position: { x: 50, y: 430 },
                     style: {
-                        width: 500,
-                        height: 300
+                        width: 495,
+                        height: 250, // Reduced height
+                        backgroundColor: "#FFFFFF",
+                        borderColor: "#BDC3C7"
                     }
                 }
             ],
             style: {
                 size: "a4",
-                margin: 50
+                margin: { top: 70, bottom: 70, left: 50, right: 50 },
+                backgroundColor: "#FAFAFA"
             }
         },
-        // Second page with Arabic content
+        // Second page - OPTIMIZED
         {
             elements: [
                 {
                     type: "text",
                     content: "الصفحة الثانية",
-                    position: { x: 50, y: 50 },
+                    position: { x: 50, y: 100 },
                     style: {
-                        fontSize: 24,
-                        color: "#000000",
+                        fontSize: 22,
+                        color: "#8E44AD",
                         direction: "rtl",
-                        font: "DejaVuSans-Bold"
+                        font: "DejaVuSans-Bold",
+                        width: 495,
+                        align: "right"
                     }
                 },
                 {
                     type: "text",
-                    content: "هذه هي الصفحة الثانية من الوثيقة التي تحتوي على نص عربي. نحن نختبر دعم الصفحات المتعددة مع اللغة العربية.",
-                    position: { x: 50, y: 90 },
+                    content: "هذه الصفحة تحتوي على محتوى عربي مع رسوم بيانية.",
+                    position: { x: 50, y: 135 },
                     style: {
-                        fontSize: 12,
-                        color: "#333333",
-                        width: 500,
+                        fontSize: 14,
+                        color: "#2C3E50",
+                        width: 495,
                         direction: "rtl",
-                        font: "DejaVuSans"
+                        font: "DejaVuSans",
+                        align: "right",
+                        lineBreak: true
                     }
                 },
                 {
                     type: "chart",
                     content: {
                         type: "line",
-                        title: "مخطط خطي للبيانات العربية",
-                        textDirection: "rtl", // Setting RTL for chart title
+                        title: "النشاط الأسبوعي",
+                        textDirection: "rtl",
                         data: {
                             labels: ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"],
                             datasets: [{
                                 label: "النشاط اليومي",
                                 data: [65, 59, 80, 81, 56, 55, 40],
-                                borderColor: 'rgba(75, 192, 192, 1)',
-                                backgroundColor: 'rgba(75, 192, 192, 0.2)'
+                                borderColor: '#E74C3C',
+                                backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                                borderWidth: 3
                             }]
                         },
                         options: {
-                            rtl: true, // Enable RTL for chart
+                            rtl: true,
+                            responsive: false,
+                            animation: false,
                             font: {
-                                family: 'DejaVuSans' // Specify font for Arabic
+                                family: 'DejaVuSans'
                             }
                         }
                     },
-                    position: { x: 50, y: 150 },
+                    position: { x: 50, y: 170 },
                     style: {
-                        width: 500,
-                        height: 300
+                        width: 495,
+                        height: 180, // Reduced height
+                        backgroundColor: "#FFFFFF",
+                        borderColor: "#E74C3C"
                     }
                 },
                 {
                     type: "chart",
                     content: {
                         type: "pie",
-                        title: "الرسم البياني الدائري",
+                        title: "توزيع الألوان",
                         textDirection: "rtl",
                         data: {
-                            labels: ["أحمر", "أزرق", "أصفر", "أخضر", "بنفسجي"],
+                            labels: ["أحمر", "أزرق", "أخضر", "أصفر", "بنفسجي"],
                             datasets: [{
-                                data: [300, 50, 100, 40, 120],
+                                data: [120, 80, 150, 60, 90],
                                 backgroundColor: [
-                                    'rgba(255, 99, 132, 0.7)',
-                                    'rgba(54, 162, 235, 0.7)',
-                                    'rgba(255, 206, 86, 0.7)',
-                                    'rgba(75, 192, 192, 0.7)',
-                                    'rgba(153, 102, 255, 0.7)'
-                                ]
+                                    '#E74C3C',
+                                    '#3498DB',
+                                    '#27AE60',
+                                    '#F1C40F',
+                                    '#9B59B6'
+                                ],
+                                borderColor: [
+                                    '#C0392B',
+                                    '#2980B9',
+                                    '#229954',
+                                    '#F39C12',
+                                    '#8E44AD'
+                                ],
+                                borderWidth: 2
                             }]
                         },
                         options: {
                             rtl: true,
+                            responsive: false,
+                            animation: false,
                             font: {
                                 family: 'DejaVuSans'
                             }
                         }
                     },
-                    position: { x: 50, y: 470 },
+                    position: { x: 50, y: 370 },
                     style: {
-                        width: 400,
-                        height: 300
+                        width: 495,
+                        height: 270, // Compact height to fit on the page
+                        backgroundColor: "#FFFFFF",
+                        borderColor: "#27AE60"
                     }
                 }
             ],
             style: {
                 size: "a4",
-                margin: 50
+                margin: { top: 70, bottom: 70, left: 50, right: 50 },
+                backgroundColor: "#F8F9FA"
             }
         }
     ]

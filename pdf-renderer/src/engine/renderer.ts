@@ -1,9 +1,9 @@
 import PDFDocument from 'pdfkit';
-import { renderTemplate, applyTemplateToPage } from './templates/templateRenderer';
 import { renderText } from './text/textRenderer';
 import { renderImage } from './images/imageRenderer';
 import { renderChart } from './charts/chartRenderer';
 import { containsRTL, isArabicOnly } from '../utils/bidirectionalTextUtil';
+import { convertColorToHex } from '../utils/colorUtils';
 import path from 'path';
 import fs from 'fs';
 
@@ -11,122 +11,36 @@ import fs from 'fs';
 const fontPath = path.resolve(__dirname, '../../assets/fonts');
 
 /**
- * Applies page style to PDF document
- */
-const applyPageStyle = (doc: PDFKit.PDFDocument, style: any = {}): void => {
-    try {
-        // Set page size if specified
-        if (style.size) {
-            // Convert common sizes to dimensions
-            const sizes: Record<string, [number, number]> = {
-                'a4': [595.28, 841.89],
-                'letter': [612, 792],
-                'legal': [612, 1008]
-            };
-
-            if (typeof style.size === 'string' && style.size.toLowerCase() in sizes) {
-                const [width, height] = sizes[style.size.toLowerCase()];
-                doc.page.width = width;
-                doc.page.height = height;
-            } else if (Array.isArray(style.size) && style.size.length === 2) {
-                doc.page.width = style.size[0];
-                doc.page.height = style.size[1];
-            }
-        }
-
-        // Set page margins
-        if (style.margin) {
-            if (typeof style.margin === 'number') {
-                doc.page.margins = {
-                    top: style.margin,
-                    bottom: style.margin,
-                    left: style.margin,
-                    right: style.margin
-                };
-            } else if (typeof style.margin === 'object') {
-                doc.page.margins = {
-                    top: style.margin.top || doc.page.margins.top,
-                    bottom: style.margin.bottom || doc.page.margins.bottom,
-                    left: style.margin.left || doc.page.margins.left,
-                    right: style.margin.right || doc.page.margins.right
-                };
-            }
-        }
-
-        // Set page background color
-        if (style.backgroundColor) {
-            doc.rect(0, 0, doc.page.width, doc.page.height)
-                .fill(style.backgroundColor);
-        }
-    } catch (error) {
-        console.error('Error applying page style:', error);
-    }
-};
-
-/**
- * Loads and registers fonts with priority order
+ * Registers fonts without creating pages
  */
 const registerFonts = (doc: PDFKit.PDFDocument): void => {
     try {
-        // Check if fonts directory exists
         if (fs.existsSync(fontPath)) {
-            // Register fonts with multilingual support including Arabic and Cyrillic
             const fontFiles = [
-                { name: 'NotoSansArabic', path: 'NotoSansArabic-Regular.ttf' },
-                { name: 'NotoSansArabic-Bold', path: 'NotoSansArabic-Bold.ttf' },
                 { name: 'DejaVuSans', path: 'DejaVuSans.ttf' },
                 { name: 'DejaVuSans-Bold', path: 'DejaVuSans-Bold.ttf' },
-                { name: 'DejaVuSans-Oblique', path: 'DejaVuSans-Oblique.ttf' },
-                { name: 'Amiri', path: 'Amiri-Regular.ttf' },
-                { name: 'Amiri-Bold', path: 'Amiri-Bold.ttf' },
-                { name: 'OpenSans', path: 'OpenSans-Regular.ttf' },
-                { name: 'OpenSans-Bold', path: 'OpenSans-Bold.ttf' }
+                { name: 'NotoSansArabic', path: 'NotoSansArabic-Regular.ttf' }
             ];
-
-            // Registered fonts for control
-            const registeredFonts: string[] = [];
 
             for (const font of fontFiles) {
                 const fontFilePath = path.join(fontPath, font.path);
 
                 if (fs.existsSync(fontFilePath)) {
                     try {
-                        // Register the font under the name we'll use
                         doc.registerFont(font.name, fontFilePath);
-                        registeredFonts.push(font.name);
-                        console.log(`Font ${font.name} successfully registered`);
+                        console.log(`Font ${font.name} registered`);
                     } catch (err) {
-                        console.warn(`Could not register font ${font.name}:`, err);
+                        console.warn(`Could not register font ${font.name}`);
                     }
-                } else {
-                    console.warn(`Font file not found: ${fontFilePath}`);
                 }
-            }
-
-            // Check if fonts with Arabic support were successfully registered
-            const arabicFonts = ['NotoSansArabic', 'DejaVuSans', 'Amiri'];
-            const hasArabicFont = arabicFonts.some(font => registeredFonts.includes(font));
-
-            if (!hasArabicFont) {
-                console.warn('No fonts with Arabic support were registered. RTL text may display incorrectly.');
             }
 
             // Set default font
-            const defaultFontPriority = ['DejaVuSans', 'NotoSansArabic', 'OpenSans'];
-
-            for (const fontName of defaultFontPriority) {
-                if (registeredFonts.includes(fontName)) {
-                    try {
-                        doc.font(fontName);
-                        console.log(`Using ${fontName} as default font`);
-                        break;
-                    } catch (e) {
-                        console.warn(`Failed to set ${fontName} as default`);
-                    }
-                }
+            try {
+                doc.font('DejaVuSans');
+            } catch (e) {
+                console.warn('Could not set default font');
             }
-        } else {
-            console.warn(`Fonts directory not found: ${fontPath}`);
         }
     } catch (error) {
         console.error('Error registering fonts:', error);
@@ -134,208 +48,233 @@ const registerFonts = (doc: PDFKit.PDFDocument): void => {
 };
 
 /**
- * Renders DSL to PDF buffer
+ * Applies simple header and footer to existing page
+ */
+const applySimpleTemplate = (doc: PDFKit.PDFDocument, pageNumber: number, totalPages: number): void => {
+    try {
+        doc.save();
+
+        // Header
+        doc.fontSize(14)
+            .fillColor('#34495E')
+            .text('Generated Document', 50, 25, {
+                width: doc.page.width - 100,
+                align: 'center'
+            });
+
+        // Header line
+        doc.strokeColor('#BDC3C7')
+            .lineWidth(0.5)
+            .moveTo(50, 50)
+            .lineTo(doc.page.width - 50, 50)
+            .stroke();
+
+        // Footer
+        const footerY = doc.page.height - 35;
+
+        // Footer line
+        doc.strokeColor('#BDC3C7')
+            .lineWidth(0.5)
+            .moveTo(50, footerY - 10)
+            .lineTo(doc.page.width - 50, footerY - 10)
+            .stroke();
+
+        // Footer text
+        doc.fontSize(10)
+            .fillColor('#7F8C8D')
+            .text(`Page ${pageNumber} of ${totalPages}`, 50, footerY, {
+                width: doc.page.width - 100,
+                align: 'center'
+            });
+
+        doc.restore();
+    } catch (error) {
+        console.error('Error applying template:', error);
+    }
+};
+
+/**
+ * Applies page background color
+ */
+const applyPageBackground = (doc: PDFKit.PDFDocument, backgroundColor?: string): void => {
+    if (backgroundColor) {
+        try {
+            const bgColor = convertColorToHex(backgroundColor);
+            doc.save();
+            doc.fillColor(bgColor)
+                .rect(0, 0, doc.page.width, doc.page.height)
+                .fill();
+            doc.restore();
+        } catch (error) {
+            console.error('Error applying background:', error);
+        }
+    }
+};
+
+/**
+ * Processes elements on a page - ASYNC FUNCTION
+ */
+const processPageElements = async (doc: PDFKit.PDFDocument, elements: any[], pageNumber: number): Promise<void> => {
+    if (!elements || !Array.isArray(elements)) {
+        console.log(`No elements on page ${pageNumber}`);
+        return;
+    }
+
+    console.log(`Processing ${elements.length} elements on page ${pageNumber}`);
+
+    for (let elementIndex = 0; elementIndex < elements.length; elementIndex++) {
+        const element = elements[elementIndex];
+
+        if (!element || !element.type || !element.position) {
+            console.warn(`Skipping invalid element ${elementIndex} on page ${pageNumber}`);
+            continue;
+        }
+
+        const { type, content, position, style } = element;
+
+        try {
+            console.log(`Rendering ${type} at (${position.x}, ${position.y})`);
+
+            // Set font for element
+            let elementFont = 'DejaVuSans';
+            if (style?.direction === 'rtl' || (typeof content === 'string' && containsRTL(content))) {
+                elementFont = isArabicOnly(content) ? 'NotoSansArabic' : 'DejaVuSans';
+            }
+
+            try {
+                doc.font(style?.font || elementFont);
+            } catch (fontError) {
+                doc.font('DejaVuSans');
+            }
+
+            // Render element
+            switch (type) {
+                case 'text':
+                    renderText(doc, String(content || ''), {
+                        ...style,
+                        position,
+                        direction: style?.direction || (containsRTL(String(content)) ? 'rtl' : 'ltr')
+                    });
+                    break;
+
+                case 'image':
+                    try {
+                        await renderImage(doc, content, position, style);
+                    } catch (err) {
+                        console.error(`Image error:`, err);
+                    }
+                    break;
+
+                case 'chart':
+                    try {
+                        await renderChart(doc, content, position, style);
+                    } catch (err) {
+                        console.error(`Chart error:`, err);
+                    }
+                    break;
+
+                default:
+                    console.warn(`Unknown element type: ${type}`);
+            }
+        } catch (elementError) {
+            console.error(`Error rendering element on page ${pageNumber}:`, elementError);
+        }
+    }
+};
+
+/**
+ * MINIMAL RENDERER WITH PROPER ASYNC HANDLING
  */
 export const renderDSLToPDF = async (dsl: any): Promise<Buffer> => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         try {
-            // Create PDF document with enhanced settings
+            console.log('=== STARTING MINIMAL PDF GENERATION ===');
+
+            // Validate input
+            if (!dsl || !dsl.pages || !Array.isArray(dsl.pages)) {
+                reject(new Error('Invalid DSL: pages array is required'));
+                return;
+            }
+
+            const totalPages = dsl.pages.length;
+            console.log(`Creating PDF with exactly ${totalPages} pages`);
+
+            // Create PDF document with minimal settings
             const doc = new PDFDocument({
-                autoFirstPage: false, // Don't create first page automatically
-                bufferPages: true,
-                compress: true,
-                info: {
-                    Title: 'Generated Document',
-                    Creator: 'PDF Renderer Service',
-                    Producer: 'PDFKit'
-                },
-                // Disable page decorations to avoid artifacts
+                autoFirstPage: false, // CRITICAL!
+                bufferPages: false,   // Disable page buffering
+                compress: false,      // Disable compression for debugging
                 margin: 0,
                 layout: 'portrait',
                 size: 'a4'
             });
 
-            // Register fonts with multilingual support
+            // Register fonts
             registerFonts(doc);
 
-            // Buffer to store PDF data
+            // PDF data collection
             const buffers: Buffer[] = [];
+            let isFinalized = false;
 
-            // Add listeners for data and end events
             doc.on('data', (chunk) => {
-                if (chunk) {
-                    buffers.push(chunk);
-                }
+                buffers.push(chunk);
             });
 
             doc.on('end', () => {
-                resolve(Buffer.concat(buffers));
-            });
-
-            // Add error handler
-            doc.on('error', (err) => {
-                console.error('PDFKit error:', err);
-                reject(err);
-            });
-
-            // Save template name for later use
-            const templateName = dsl.template || 'default';
-
-            // Set document default font if specified
-            if (dsl.defaultFont && typeof dsl.defaultFont === 'string') {
-                try {
-                    doc.font(dsl.defaultFont);
-                    console.log(`Using ${dsl.defaultFont} as document default font`);
-                } catch (fontError) {
-                    console.warn(`Default font not found: ${dsl.defaultFont}, using system default`);
+                if (!isFinalized) {
+                    isFinalized = true;
+                    console.log('=== PDF GENERATION COMPLETED ===');
+                    resolve(Buffer.concat(buffers));
                 }
+            });
+
+            doc.on('error', (err) => {
+                if (!isFinalized) {
+                    isFinalized = true;
+                    reject(err);
+                }
+            });
+
+            // Set document font
+            try {
+                doc.font('DejaVuSans').fontSize(12);
+            } catch (e) {
+                console.warn('Default font setup failed');
             }
 
-            // Initialize template
-            renderTemplate(doc, templateName);
+            // Process each page from DSL - STRICTLY ONCE
+            for (let pageIndex = 0; pageIndex < dsl.pages.length; pageIndex++) {
+                const page = dsl.pages[pageIndex];
+                const pageNumber = pageIndex + 1;
 
-            // Calculate total number of pages for template replacement
-            const totalPages = dsl.pages?.length || 1;
+                console.log(`\n--- CREATING PAGE ${pageNumber} ---`);
 
-            // Add first page automatically to avoid blank pages
-            doc.addPage();
+                // Create new page - THE ONLY PLACE WHERE PAGES ARE CREATED
+                doc.addPage();
+                console.log(`Page ${pageNumber} created`);
 
-            // Add pages and render content
-            if (!dsl.pages || !Array.isArray(dsl.pages) || dsl.pages.length === 0) {
-                // Apply template to first page
-                applyTemplateToPage(doc, templateName, 1, 1);
-                doc.text('Empty document', 50, 50);
-            } else {
-                // Process all pages
-                dsl.pages.forEach((page: any, pageIndex: number) => {
-                    // Only add a new page if not the first one
-                    if (pageIndex > 0) {
-                        doc.addPage();
-                    }
+                // Apply background first
+                if (page.style?.backgroundColor) {
+                    applyPageBackground(doc, page.style.backgroundColor);
+                }
 
-                    // Apply template to this page
-                    applyTemplateToPage(doc, templateName, pageIndex + 1, totalPages);
+                // Apply simple template
+                applySimpleTemplate(doc, pageNumber, totalPages);
 
-                    // Apply page style if specified
-                    if (page.style) {
-                        applyPageStyle(doc, page.style);
-                    }
+                // Process elements asynchronously
+                await processPageElements(doc, page.elements, pageNumber);
 
-                    // Calculate document language direction (RTL/LTR)
-                    let isDocRTL = false;
-                    if (dsl.defaultDirection === 'rtl') {
-                        isDocRTL = true;
-                    }
-
-                    // Process each element on the page
-                    if (page.elements && Array.isArray(page.elements)) {
-                        page.elements.forEach((element: any) => {
-                            if (!element || !element.type || !element.position) {
-                                console.warn('Invalid element:', element);
-                                return;
-                            }
-
-                            const { type, content, position, style } = element;
-
-                            try {
-                                // Set default font for each element based on content
-                                let defaultFont = '';
-
-                                // Check if content contains RTL text
-                                let isRTL = style?.direction === 'rtl';
-
-                                if (!isRTL && typeof content === 'string') {
-                                    // If direction not explicitly specified in style, check content
-                                    if (containsRTL(content)) {
-                                        isRTL = true;
-                                    }
-                                }
-
-                                // Choose appropriate font
-                                if (isRTL) {
-                                    // Priority fonts for RTL
-                                    const rtlFonts = ['NotoSansArabic', 'DejaVuSans', 'Amiri'];
-
-                                    // Check if text is fully Arabic
-                                    const isFullArabic = typeof content === 'string' && isArabicOnly(content);
-
-                                    // For fully Arabic text choose NotoSansArabic
-                                    defaultFont = isFullArabic ? 'NotoSansArabic' : 'DejaVuSans';
-                                } else {
-                                    defaultFont = 'OpenSans';
-                                }
-
-                                // Try to set the font
-                                try {
-                                    doc.font(style?.font || defaultFont);
-                                } catch (fontError) {
-                                    console.warn(`Could not load font ${style?.font || defaultFont}, falling back`);
-
-                                    // Try to load suitable font from the list
-                                    const fontList = isRTL
-                                        ? ['NotoSansArabic', 'DejaVuSans', 'Amiri']
-                                        : ['OpenSans', 'DejaVuSans'];
-
-                                    for (const fontName of fontList) {
-                                        try {
-                                            doc.font(fontName);
-                                            console.log(`Using fallback font: ${fontName}`);
-                                            break;
-                                        } catch (e) {
-                                            // Continue attempts
-                                        }
-                                    }
-                                }
-                                // Render element depending on type
-                                switch (type) {
-                                    case 'text':
-                                        if (typeof content === 'string') {
-                                            renderText(doc, content, {
-                                                ...style,
-                                                position,
-                                                direction: style?.direction || (isRTL ? 'rtl' : 'ltr')
-                                            });
-                                        } else {
-                                            // Try to convert content to string
-                                            try {
-                                                const stringContent = String(content || '');
-                                                console.warn(`Text content is not a string, converting: ${typeof content} -> string`);
-                                                renderText(doc, stringContent, {
-                                                    ...style,
-                                                    position,
-                                                    direction: style?.direction || (isRTL ? 'rtl' : 'ltr')
-                                                });
-                                            } catch (textError) {
-                                                console.error('Failed to convert text content to string:', textError);
-                                                doc.text(`Error: Invalid text content format (${typeof content})`, position.x, position.y);
-                                            }
-                                        }
-                                        break;
-                                    case 'image':
-                                        renderImage(doc, content, position, style)
-                                            .catch((err: Error) => console.error('Error rendering image:', err));
-                                        break;
-                                    case 'chart':
-                                        renderChart(doc, content, position, style)
-                                            .catch((err: Error) => console.error('Error rendering chart:', err));
-                                        break;
-                                    default:
-                                        console.warn(`Unknown element type: ${type}`);
-                                }
-                            } catch (elementError) {
-                                console.error(`Error rendering element of type ${type}:`, elementError);
-                                doc.text(`Error rendering ${type} element`, position.x, position.y);
-                            }
-                        });
-                    }
-                });
+                console.log(`--- PAGE ${pageNumber} COMPLETED ---`);
             }
 
-            // Finalize document
+            console.log(`\n=== FINALIZING PDF ===`);
+
+            // Finalize PDF
             doc.end();
-        } catch (initialError) {
-            console.error('Error initializing PDF generation:', initialError);
-            reject(initialError);
+
+        } catch (error) {
+            console.error('Critical error in PDF generation:', error);
+            reject(error);
         }
     });
 };
