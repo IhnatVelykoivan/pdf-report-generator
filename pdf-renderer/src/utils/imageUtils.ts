@@ -12,14 +12,19 @@ export const fetchImage = async (source: string | Buffer): Promise<Buffer> => {
         return source;
     }
 
+    // Ensure source is a string for the following checks
+    if (typeof source !== 'string') {
+        throw new Error('Image source must be a string or Buffer');
+    }
+
     // If source is a base64 data URL
-    if (typeof source === 'string' && source.startsWith('data:')) {
+    if (source.startsWith('data:')) {
         const base64Data = source.split(',')[1];
         return Buffer.from(base64Data, 'base64');
     }
 
     // If source is a file path
-    if (typeof source === 'string' && (source.startsWith('./') || source.startsWith('/') || source.includes(':\\') || source.includes(':/'))) {
+    if (source.startsWith('./') || source.startsWith('/') || source.includes(':\\') || source.includes(':/')) {
         try {
             return await readFileAsync(source);
         } catch (error) {
@@ -28,13 +33,14 @@ export const fetchImage = async (source: string | Buffer): Promise<Buffer> => {
     }
 
     // If source is a URL
-    if (typeof source === 'string' && (source.startsWith('http://') || source.startsWith('https://'))) {
+    if (source.startsWith('http://') || source.startsWith('https://')) {
         try {
             const response = await axios.get(source, {
                 responseType: 'arraybuffer'
             });
 
-            return Buffer.from(response.data);
+            // Explicitly cast response.data to Buffer
+            return Buffer.from(response.data as ArrayBuffer);
         } catch (error) {
             throw new Error(`Failed to fetch image from URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }

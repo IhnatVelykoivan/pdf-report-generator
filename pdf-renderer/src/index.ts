@@ -1,7 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import { apiRouter } from './api/routes';
+import claudeRouter from './routes/claude';
+
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Changed from 3000 to 3001
@@ -13,6 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.use('/api', apiRouter);
+app.use('/api/claude', claudeRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
