@@ -142,9 +142,15 @@ router.post('/generate-dsl', async (req, res) => {
 
 На основе разговора с пользователем создай JSON структуру для генерации PDF отчёта.
 
+ВАЖНО: Используй следующие правила для шрифтов и направления текста:
+- Для арабского текста: font: "DejaVuSans", direction: "rtl", align: "right"
+- Для английского/русского: font: "DejaVuSans", direction: "ltr"
+- Для графиков с арабским: rtl: true, textDirection: "rtl", font: {family: "DejaVuSans"}
+
 Структура DSL должна включать:
 - template: тип шаблона
 - defaultDirection: направление text (ltr/rtl)
+- defaultFont: "DejaVuSans"
 - pages: массив страниц с элементами
 
 Каждый элемент страницы может быть:
@@ -215,6 +221,10 @@ router.post('/feedback', async (req, res) => {
 
 Получи текущую DSL структуру и фидбек пользователя, затем предложи улучшения.
 
+ВАЖНО: Соблюдай правила для шрифтов:
+- Для арабского текста: font: "DejaVuSans", direction: "rtl", align: "right"
+- Для графиков с арабским: rtl: true, textDirection: "rtl", font: {family: "DejaVuSans"}
+
 Ответь ТОЛЬКО в JSON формате:
 {
     "dsl": { обновлённая DSL структура },
@@ -262,7 +272,7 @@ ${userFeedback}
     }
 });
 
-// Утилитарная функция для создания fallback DSL
+// ОБНОВЛЕННАЯ утилитарная функция для создания fallback DSL (основана на рабочем тесте)
 function createFallbackDSL(conversationHistory: ChatMessage[]) {
     const lastUserMessage = conversationHistory
         .filter(msg => msg.role === 'user')
@@ -270,47 +280,204 @@ function createFallbackDSL(conversationHistory: ChatMessage[]) {
 
     const language = detectLanguage(lastUserMessage);
     const reportType = detectReportType(lastUserMessage);
+    const isRTL = language === 'arabic';
+
+    console.log(`🔧 Создаём улучшенный fallback DSL: язык=${language}, тип=${reportType}, RTL=${isRTL}`);
+
+    const title = extractTitle(lastUserMessage);
+    const content = generateContent(reportType, language);
+
+    // КРИТИЧЕСКИ ВАЖНО: Функция для создания текстового элемента с гарантированными параметрами (по образцу рабочего теста)
+    const createTextElement = (text: string, position: {x: number, y: number}, extraStyle: any = {}) => {
+        const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
+        const elementIsRTL = hasArabic || isRTL;
+
+        return {
+            type: 'text',
+            content: text,
+            position: position,
+            style: {
+                font: 'DejaVuSans', // Используем DejaVuSans как в рабочем тесте
+                direction: elementIsRTL ? 'rtl' : 'ltr',
+                align: elementIsRTL ? 'right' : 'left',
+                ...extraStyle,
+                // Переопределяем выравнивание если есть арабский текст
+                ...(hasArabic ? { align: extraStyle.align === 'center' ? 'center' : 'right' } : {})
+            }
+        };
+    };
+
+    // Создаем график с правильными настройками для RTL
+    const createChartElement = (position: {x: number, y: number}) => {
+        const chart = generateSampleChart(reportType, language);
+
+        // Добавляем RTL настройки для арабских графиков (как в рабочем тесте)
+        if (isRTL) {
+            chart.options = {
+                ...chart.options,
+                rtl: true,
+                font: { family: 'DejaVuSans' }
+            };
+            chart.textDirection = 'rtl';
+        }
+
+        return {
+            type: 'chart',
+            content: chart,
+            position: position,
+            style: {
+                width: 495, // Как в рабочем тесте
+                height: 250,
+                backgroundColor: '#FFFFFF',
+                borderColor: '#BDC3C7'
+            }
+        };
+    };
+
+    const dsl = {
+        template: 'default',
+        defaultFont: 'DejaVuSans', // Как в рабочем тесте
+        defaultDirection: isRTL ? 'rtl' : 'ltr',
+        pages: [{
+            elements: [
+                // Заголовок с правильным шрифтом
+                createTextElement(title, { x: 50, y: 100 }, { // Используем позиции как в рабочем тесте
+                    fontSize: 24,
+                    color: '#2C3E50',
+                    width: 495,
+                    align: 'center'
+                }),
+
+                // Основной контент с правильным шрифтом
+                createTextElement(content, { x: 50, y: 170 }, {
+                    fontSize: 12,
+                    color: '#34495E',
+                    width: 495,
+                    lineBreak: true
+                }),
+
+                // График
+                createChartElement({ x: 50, y: 430 }),
+
+                // Заключение с правильным шрифтом
+                createTextElement(getConclusion(language), { x: 50, y: 700 }, {
+                    fontSize: 11,
+                    color: '#7F8C8D',
+                    width: 495,
+                    lineBreak: true
+                })
+            ],
+            style: {
+                size: 'a4',
+                margin: { top: 70, bottom: 70, left: 50, right: 50 } // Как в рабочем тесте
+            }
+        }]
+    };
+
+    // Дополнительная проверка DSL
+    const validatedDSL = ensureDSLFontsAndDirection(dsl);
 
     return {
-        dsl: {
-            template: 'default',
-            defaultDirection: language === 'arabic' ? 'rtl' : 'ltr',
-            pages: [{
-                elements: [
-                    {
-                        type: 'text',
-                        content: extractTitle(lastUserMessage),
-                        position: { x: 100, y: 100 },
-                        style: {
-                            font: language === 'arabic' ? 'NotoSansArabic' : 'DejaVuSans',
-                            fontSize: 24,
-                            color: '#2C3E50',
-                            width: 400,
-                            align: 'center'
-                        }
-                    },
-                    {
-                        type: 'text',
-                        content: generateContent(reportType, language),
-                        position: { x: 80, y: 200 },
-                        style: {
-                            font: language === 'arabic' ? 'NotoSansArabic' : 'DejaVuSans',
-                            fontSize: 12,
-                            color: '#34495E',
-                            width: 450,
-                            lineBreak: true
-                        }
-                    }
-                ]
-            }]
-        },
-        explanation: `Создан ${reportType} отчёт на ${language === 'russian' ? 'русском' : language === 'english' ? 'английском' : 'арабском'} языке`,
+        dsl: validatedDSL,
+        explanation: `Создан ${reportType} отчёт на ${language === 'russian' ? 'русском' : language === 'english' ? 'английском' : 'арабском'} языке (улучшенная fallback версия с правильными шрифтами)`,
         suggestions: [
-            'Добавить графики и диаграммы',
-            'Включить больше разделов',
-            'Изменить стиль оформления'
+            'Добавить больше графиков и диаграмм',
+            'Включить дополнительные разделы',
+            'Изменить стиль оформления',
+            'Добавить таблицы с данными'
         ]
     };
+}
+
+// НОВАЯ функция для гарантированной проверки DSL
+function ensureDSLFontsAndDirection(dsl: any): any {
+    console.log('🔍 Проверяем DSL на корректность шрифтов и направления...');
+
+    if (!dsl.pages || !Array.isArray(dsl.pages)) {
+        return dsl;
+    }
+
+    for (const page of dsl.pages) {
+        if (!page.elements || !Array.isArray(page.elements)) {
+            continue;
+        }
+
+        for (const element of page.elements) {
+            if (element.type === 'text' && element.content) {
+                const content = String(element.content);
+                const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(content);
+
+                // Гарантируем наличие style
+                if (!element.style) {
+                    element.style = {};
+                }
+
+                // ПРИНУДИТЕЛЬНО устанавливаем правильные параметры
+                if (hasArabic) {
+                    element.style.font = 'DejaVuSans'; // Используем DejaVuSans как в рабочем тесте
+                    element.style.direction = 'rtl';
+
+                    // Исправляем выравнивание для арабского текста
+                    if (!element.style.align || element.style.align === 'left') {
+                        element.style.align = element.style.align === 'center' ? 'center' : 'right';
+                    }
+
+                    console.log(`🔧 ИСПРАВЛЕН арабский элемент: "${content.substring(0, 30)}..." -> font=DejaVuSans, direction=rtl, align=${element.style.align}`);
+                } else {
+                    // Для не-арабского текста
+                    if (!element.style.font) {
+                        element.style.font = 'DejaVuSans';
+                    }
+                    if (!element.style.direction) {
+                        element.style.direction = 'ltr';
+                    }
+
+                    console.log(`✅ Проверен элемент: "${content.substring(0, 30)}..." -> font=${element.style.font}, direction=${element.style.direction}`);
+                }
+            }
+
+            // Проверяем графики
+            if (element.type === 'chart' && element.content) {
+                const chart = element.content;
+
+                // Проверяем заголовок графика
+                if (chart.title) {
+                    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(chart.title);
+
+                    if (!chart.options) {
+                        chart.options = {};
+                    }
+
+                    if (hasArabic) {
+                        chart.options.rtl = true;
+                        chart.options.font = { family: 'DejaVuSans' }; // Используем DejaVuSans как в рабочем тесте
+                        chart.textDirection = 'rtl'; // Добавляем textDirection как в рабочем тесте
+                        console.log(`🔧 ИСПРАВЛЕН заголовок графика: "${chart.title}" -> rtl=true, font=DejaVuSans, textDirection=rtl`);
+                    }
+                }
+
+                // Проверяем подписи данных
+                if (chart.data && chart.data.labels) {
+                    const hasArabicLabels = chart.data.labels.some((label: string) =>
+                        /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(label)
+                    );
+
+                    if (hasArabicLabels) {
+                        if (!chart.options) {
+                            chart.options = {};
+                        }
+                        chart.options.rtl = true;
+                        chart.options.font = { family: 'DejaVuSans' };
+                        chart.textDirection = 'rtl';
+                        console.log(`🔧 ИСПРАВЛЕНЫ подписи графика с арабским текстом -> rtl=true, font=DejaVuSans, textDirection=rtl`);
+                    }
+                }
+            }
+        }
+    }
+
+    console.log('✅ Проверка DSL завершена');
+    return dsl;
 }
 
 // Утилитарные функции
@@ -361,6 +528,48 @@ function generateContent(reportType: string, language: string): string {
 
     return content[language as keyof typeof content]?.[reportType as keyof typeof content.russian] ||
         content.russian.general;
+}
+
+function generateSampleChart(reportType: string, language: string): any {
+    const isRTL = language === 'arabic';
+
+    const chart = {
+        type: 'bar',
+        title: language === 'arabic' ? 'النشاط التجاري' :
+            language === 'english' ? 'Business Activity' :
+                'Деловая активность',
+        data: {
+            labels: language === 'arabic' ? ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو'] :
+                language === 'english' ? ['Jan', 'Feb', 'Mar', 'Apr', 'May'] :
+                    ['Янв', 'Фев', 'Мар', 'Апр', 'Май'],
+            datasets: [{
+                label: language === 'arabic' ? 'المبيعات' :
+                    language === 'english' ? 'Sales' :
+                        'Продажи',
+                data: [12, 19, 8, 15, 6],
+                backgroundColor: ['#E74C3C', '#3498DB', '#F39C12', '#27AE60', '#9B59B6'],
+                borderColor: ['#C0392B', '#2980B9', '#E67E22', '#229954', '#8E44AD'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: false,
+            animation: false
+        }
+    };
+
+    return chart;
+}
+
+// Функция для получения заключения на нужном языке
+function getConclusion(language: string): string {
+    const conclusions = {
+        russian: 'Заключение:\n\nДанный отчёт был автоматически сгенерирован на основе ваших требований. Для получения более детальной информации обратитесь к специалистам.',
+        english: 'Conclusion:\n\nThis report was automatically generated based on your requirements. For more detailed information, please contact our specialists.',
+        arabic: 'الخلاصة:\n\nتم إنشاء هذا التقرير تلقائيًا بناءً على متطلباتكم. للحصول على معلومات أكثر تفصيلاً، يرجى الاتصال بالمختصين.'
+    };
+
+    return conclusions[language as keyof typeof conclusions] || conclusions.russian;
 }
 
 export default router;

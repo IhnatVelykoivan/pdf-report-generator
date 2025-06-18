@@ -1,5 +1,5 @@
 /**
- * Renders text to PDF document with proper support for all characters, including Arabic and Cyrillic
+ * Renders text to PDF document with BULLETPROOF support for Arabic and other RTL scripts
  */
 import PDFDocument from 'pdfkit';
 import { prepareText, containsRTL, isArabicOnly } from '../../utils/bidirectionalTextUtil';
@@ -8,6 +8,83 @@ interface TextRenderPosition {
     x: number;
     y: number;
 }
+
+/**
+ * УЛУЧШЕННАЯ функция определения правильного шрифта (основана на рабочем тесте)
+ */
+const getCorrectFont = (text: string, styleFont?: string): string => {
+    // Проверяем наличие арабских символов
+    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
+
+    // Если есть арабские символы, используем приоритетную цепочку шрифтов
+    if (hasArabic) {
+        console.log(`🔤 Обнаружен арабский текст: "${text.substring(0, 30)}..."`);
+
+        // Приоритет шрифтов для арабского текста (по результатам рабочего теста)
+        const arabicFontPriority = [
+            styleFont,           // Если указан в стиле
+            'DejaVuSans',       // Основной шрифт (работает в тесте)
+            'DejaVuSans-Bold',  // Жирный вариант
+            'NotoSansArabic',   // Специализированный арабский шрифт
+            'Helvetica'         // Fallback
+        ].filter((font): font is string => Boolean(font)); // Исправлено: фильтруем и типизируем
+
+        console.log(`🔤 Приоритет шрифтов для арабского текста: ${arabicFontPriority.join(' -> ')}`);
+        return arabicFontPriority[0] || 'DejaVuSans'; // Исправлено: добавлен fallback
+    }
+
+    // Если указан шрифт в стиле, проверяем его валидность
+    if (styleFont) {
+        // Список поддерживаемых шрифтов
+        const supportedFonts = ['DejaVuSans', 'DejaVuSans-Bold', 'NotoSansArabic', 'Helvetica', 'Courier', 'Times-Roman'];
+
+        if (supportedFonts.includes(styleFont)) {
+            return styleFont;
+        } else {
+            console.warn(`⚠️ Неподдерживаемый шрифт ${styleFont}, используем DejaVuSans`);
+        }
+    }
+
+    // По умолчанию используем DejaVuSans (поддерживает кириллицу и частично арабский)
+    return 'DejaVuSans';
+};
+
+/**
+ * УСИЛЕННАЯ функция применения шрифта с fallback цепочкой
+ */
+const applyFontWithFallback = (doc: PDFKit.PDFDocument, text: string, styleFont?: string): void => {
+    const desiredFont = getCorrectFont(text, styleFont);
+
+    // Приоритетная цепочка шрифтов (основана на рабочем тесте)
+    const fontFallbackChain = [
+        desiredFont,
+        'DejaVuSans',      // Основной fallback (работает в тесте)
+        'DejaVuSans-Bold', // Жирный вариант DejaVu
+        'NotoSansArabic',  // Специализированный арабский
+        'Helvetica',       // Встроенный PDFKit
+        'Courier',         // Встроенный PDFKit
+        'Times-Roman'      // Встроенный PDFKit
+    ];
+
+    let fontApplied = false;
+
+    for (const fontName of fontFallbackChain) {
+        if (fontApplied) break;
+
+        try {
+            doc.font(fontName);
+            console.log(`✅ Применён шрифт: ${fontName} для текста: "${text.substring(0, 30)}..."`);
+            fontApplied = true;
+        } catch (fontError) {
+            console.warn(`⚠️ Не удалось применить шрифт ${fontName}, пробуем следующий...`);
+        }
+    }
+
+    if (!fontApplied) {
+        console.error(`❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось применить ни один шрифт для текста: "${text.substring(0, 30)}..."`);
+        throw new Error('Не удалось применить шрифт');
+    }
+};
 
 /**
  * Преобразует цвет в формат, понятный PDFKit
@@ -66,6 +143,9 @@ const convertColor = (color: string): string => {
     return '#000000';
 };
 
+/**
+ * ГЛАВНАЯ функция рендеринга текста с усиленной поддержкой RTL
+ */
 export const renderText = (
     doc: PDFKit.PDFDocument,
     text: string,
@@ -78,50 +158,26 @@ export const renderText = (
             text = String(text || '');
         }
 
+        if (!text.trim()) {
+            console.warn('Пустой текст, пропускаем рендеринг');
+            return;
+        }
+
+        console.log(`🎨 Рендерим текст: "${text.substring(0, 50)}..." со стилем:`, JSON.stringify(style, null, 2));
+
         // Save the current document state
         doc.save();
 
-        // Determine text direction - first check style, then analyze content
-        const isRTL = style?.direction === 'rtl' || (!style?.direction && containsRTL(text));
+        // КРИТИЧЕСКИ ВАЖНО: Определяем направление текста с дополнительными проверками
+        const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
+        const isRTL = style?.direction === 'rtl' ||
+            (!style?.direction && (hasArabic || containsRTL(text)));
         const isFullyArabic = isArabicOnly(text);
 
-        // Choose the appropriate font depending on content
-        let fontToUse;
+        console.log(`📝 Анализ текста: hasArabic=${hasArabic}, isRTL=${isRTL}, isFullyArabic=${isFullyArabic}, direction=${style?.direction}`);
 
-        if (isRTL) {
-            // Priority of fonts for Arabic text
-            fontToUse = style?.font || (isFullyArabic ? 'NotoSansArabic' : 'DejaVuSans');
-        } else {
-            // For regular text use standard font
-            fontToUse = style?.font || 'DejaVuSans';
-        }
-
-        // Apply the font
-        try {
-            doc.font(fontToUse);
-        } catch (fontError) {
-            console.warn(`Font not found: ${fontToUse}, trying fallback fonts`);
-
-            // Try to use fonts in priority order
-            const fallbackFonts = [
-                'DejaVuSans',
-                'Helvetica', // built-in PDFKit
-                'Courier',   // built-in PDFKit
-                'Times-Roman' // built-in PDFKit
-            ];
-
-            let fontApplied = false;
-            for (const fallbackFont of fallbackFonts) {
-                if (fontApplied) break;
-                try {
-                    doc.font(fallbackFont);
-                    console.log(`Applied fallback font: ${fallbackFont}`);
-                    fontApplied = true;
-                } catch (e) {
-                    console.warn(`Could not apply fallback font: ${fallbackFont}`);
-                }
-            }
-        }
+        // УСИЛЕННОЕ применение шрифта
+        applyFontWithFallback(doc, text, style?.font);
 
         // Apply other text styles
         if (style?.fontSize) {
@@ -132,13 +188,19 @@ export const renderText = (
         if (style?.color) {
             const convertedColor = convertColor(style.color);
             doc.fillColor(convertedColor);
-            console.log(`Applied text color: ${style.color} -> ${convertedColor}`);
+            console.log(`🎨 Применён цвет: ${style.color} -> ${convertedColor}`);
         }
 
-        // Set options for text
+        // УЛУЧШЕННЫЕ опции для текста (основано на рабочем тесте)
+        const baseAlign = isRTL ? 'right' : 'left';
+        const finalAlign = style?.align || baseAlign;
+
+        // Для арабского текста, если align не задан явно, принудительно ставим right (как в рабочем тесте)
+        const correctedAlign = hasArabic && !style?.align ? 'right' : finalAlign;
+
         const textOptions: PDFKit.Mixins.TextOptions = {
             width: style?.width,
-            align: style?.align || (isRTL ? 'right' : 'left'),
+            align: correctedAlign,
             continued: style?.continued || false,
             indent: style?.indent || 0,
             paragraphGap: style?.paragraphGap || 0,
@@ -146,28 +208,41 @@ export const renderText = (
             underline: style?.underline || false,
         };
 
+        console.log(`📐 Параметры текста: align=${correctedAlign}, width=${style?.width}, lineBreak=${textOptions.lineBreak}`);
+
         // Determine the final position of the text
         const finalPosition: TextRenderPosition = style?.position
             ? { ...style.position }
             : { x: doc.x, y: doc.y };
 
-        // Prepare text for display considering direction
+        // УСИЛЕННАЯ подготовка текста для отображения
         const preparedText = prepareText(text, isRTL);
+
+        console.log(`🔄 Подготовленный текст: "${preparedText.substring(0, 50)}..."`);
 
         // Render text with direction consideration
         doc.text(preparedText, finalPosition.x, finalPosition.y, textOptions);
 
+        console.log(`✅ Текст успешно отрендерен в позиции (${finalPosition.x}, ${finalPosition.y})`);
+
         // Restore original state
         doc.restore();
     } catch (error) {
-        console.error('Error rendering text:', error);
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА рендеринга текста:', error);
+
         try {
+            // FALLBACK рендеринг с минимальными настройками
             doc.font('Helvetica')
                 .fontSize(12)
                 .fillColor('#FF0000')
-                .text(`Error rendering text: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                .text(`[ОШИБКА РЕНДЕРИНГА]: ${text.substring(0, 100)}`,
+                    style?.position?.x || 50,
+                    style?.position?.y || 50,
+                    { width: 400 });
+
+            console.log('🚨 Отображена fallback ошибка рендеринга');
         } catch (fallbackError) {
-            console.error('Failed to display error message:', fallbackError);
+            console.error('💀 КРИТИЧЕСКАЯ ОШИБКА: Не удалось отобразить даже fallback сообщение:', fallbackError);
         }
     }
 };

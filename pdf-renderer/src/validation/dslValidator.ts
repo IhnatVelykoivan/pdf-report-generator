@@ -172,7 +172,7 @@ const dslSchema = Joi.object({
     })
 });
 
-/*** Validates the DSL input*/
+/*** Validates the DSL input с автоматическими исправлениями*/
 
 export const validateDSL = (dsl: any): ValidationResult => {
     // Check if input is undefined or null
@@ -223,6 +223,190 @@ export const validateDSL = (dsl: any): ValidationResult => {
             }
         }
     }
+
+    // 🚨 НОВАЯ КРИТИЧЕСКИ ВАЖНАЯ ПРОВЕРКА: Валидация и автоисправление шрифтов для арабского текста
+    console.log('🔍 Запускаем проверку и автоисправление арабского текста в валидаторе...');
+    let autoFixesApplied = 0;
+
+    for (let i = 0; i < (dsl.pages || []).length; i++) {
+        const page = dsl.pages[i];
+        if (page.elements) {
+            for (let j = 0; j < page.elements.length; j++) {
+                const element = page.elements[j];
+
+                if (element.type === 'text' && element.content) {
+                    const content = String(element.content);
+                    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(content);
+
+                    if (hasArabic) {
+                        // Проверяем, что для арабского текста задан правильный шрифт
+                        if (!element.style) {
+                            console.warn(`⚠️ AUTO-FIX: Arabic text on page ${i + 1}, element ${j + 1} missing style configuration, adding style`);
+                            element.style = {};
+                            autoFixesApplied++;
+                        }
+
+                        // Проверяем шрифт (используем DejaVuSans как в рабочем тесте)
+                        if (!element.style.font || !['DejaVuSans', 'DejaVuSans-Bold', 'NotoSansArabic'].includes(element.style.font)) {
+                            console.warn(`⚠️ AUTO-FIX: Arabic text on page ${i + 1}, element ${j + 1} missing proper font, setting to DejaVuSans (as in working test)`);
+                            element.style.font = 'DejaVuSans';
+                            autoFixesApplied++;
+                        }
+
+                        // Проверяем направление
+                        if (!element.style.direction || element.style.direction !== 'rtl') {
+                            console.warn(`⚠️ AUTO-FIX: Arabic text on page ${i + 1}, element ${j + 1} missing RTL direction, setting to rtl`);
+                            element.style.direction = 'rtl';
+                            autoFixesApplied++;
+                        }
+
+                        // Проверяем выравнивание
+                        if (!element.style.align) {
+                            console.warn(`⚠️ AUTO-FIX: Arabic text on page ${i + 1}, element ${j + 1} missing alignment, setting to right`);
+                            element.style.align = 'right';
+                            autoFixesApplied++;
+                        } else if (element.style.align === 'left') {
+                            console.warn(`⚠️ AUTO-FIX: Arabic text on page ${i + 1}, element ${j + 1} has left alignment, changing to right`);
+                            element.style.align = 'right';
+                            autoFixesApplied++;
+                        }
+                    }
+                }
+
+                // Проверяем графики с арабским текстом
+                if (element.type === 'chart' && element.content) {
+                    const chart = element.content;
+
+                    // Проверяем заголовок
+                    if (chart.title) {
+                        const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(chart.title);
+                        if (hasArabic) {
+                            if (!chart.options) {
+                                console.warn(`⚠️ AUTO-FIX: Chart with Arabic title on page ${i + 1}, element ${j + 1} missing options, adding RTL support`);
+                                chart.options = { rtl: true, font: { family: 'DejaVuSans' } };
+                                autoFixesApplied++;
+                            } else {
+                                if (!chart.options.rtl) {
+                                    console.warn(`⚠️ AUTO-FIX: Chart with Arabic title missing RTL flag`);
+                                    chart.options.rtl = true;
+                                    autoFixesApplied++;
+                                }
+                                if (!chart.options.font || chart.options.font.family !== 'DejaVuSans') {
+                                    console.warn(`⚠️ AUTO-FIX: Chart with Arabic title missing proper font`);
+                                    chart.options.font = { family: 'DejaVuSans' };
+                                    autoFixesApplied++;
+                                }
+                            }
+
+                            // Добавляем textDirection как в рабочем тесте
+                            if (!chart.textDirection) {
+                                console.warn(`⚠️ AUTO-FIX: Chart with Arabic title missing textDirection`);
+                                chart.textDirection = 'rtl';
+                                autoFixesApplied++;
+                            }
+                        }
+                    }
+
+                    // Проверяем подписи данных
+                    if (chart.data && chart.data.labels) {
+                        const hasArabicLabels = chart.data.labels.some((label: string) =>
+                            /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(label)
+                        );
+
+                        if (hasArabicLabels) {
+                            if (!chart.options) {
+                                console.warn(`⚠️ AUTO-FIX: Chart with Arabic labels missing options, adding RTL support`);
+                                chart.options = { rtl: true, font: { family: 'DejaVuSans' } };
+                                autoFixesApplied++;
+                            } else {
+                                if (!chart.options.rtl) {
+                                    console.warn(`⚠️ AUTO-FIX: Chart with Arabic labels missing RTL flag`);
+                                    chart.options.rtl = true;
+                                    autoFixesApplied++;
+                                }
+                                if (!chart.options.font || chart.options.font.family !== 'DejaVuSans') {
+                                    console.warn(`⚠️ AUTO-FIX: Chart with Arabic labels missing proper font`);
+                                    chart.options.font = { family: 'DejaVuSans' };
+                                    autoFixesApplied++;
+                                }
+                            }
+
+                            // Добавляем textDirection как в рабочем тесте
+                            if (!chart.textDirection) {
+                                console.warn(`⚠️ AUTO-FIX: Chart with Arabic labels missing textDirection`);
+                                chart.textDirection = 'rtl';
+                                autoFixesApplied++;
+                            }
+                        }
+                    }
+
+                    // Проверяем подписи датасетов
+                    if (chart.data && chart.data.datasets) {
+                        for (const dataset of chart.data.datasets) {
+                            if (dataset.label && /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(dataset.label)) {
+                                if (!chart.options) {
+                                    console.warn(`⚠️ AUTO-FIX: Chart with Arabic dataset label missing options`);
+                                    chart.options = { rtl: true, font: { family: 'DejaVuSans' } };
+                                    autoFixesApplied++;
+                                } else {
+                                    if (!chart.options.rtl) {
+                                        console.warn(`⚠️ AUTO-FIX: Chart with Arabic dataset label missing RTL flag`);
+                                        chart.options.rtl = true;
+                                        autoFixesApplied++;
+                                    }
+                                    if (!chart.options.font || chart.options.font.family !== 'DejaVuSans') {
+                                        console.warn(`⚠️ AUTO-FIX: Chart with Arabic dataset label missing proper font`);
+                                        chart.options.font = { family: 'DejaVuSans' };
+                                        autoFixesApplied++;
+                                    }
+                                }
+
+                                // Добавляем textDirection как в рабочем тесте
+                                if (!chart.textDirection) {
+                                    console.warn(`⚠️ AUTO-FIX: Chart with Arabic dataset label missing textDirection`);
+                                    chart.textDirection = 'rtl';
+                                    autoFixesApplied++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Проверяем общие настройки документа
+    if (!dsl.defaultFont) {
+        console.warn(`⚠️ AUTO-FIX: Missing defaultFont, setting to DejaVuSans (as in working test)`);
+        dsl.defaultFont = 'DejaVuSans';
+        autoFixesApplied++;
+    }
+
+    if (!dsl.defaultDirection) {
+        // Определяем преобладающее направление
+        let arabicElements = 0;
+        let totalElements = 0;
+
+        for (const page of dsl.pages || []) {
+            for (const element of page.elements || []) {
+                if (element.type === 'text' && element.content) {
+                    totalElements++;
+                    if (/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(element.content)) {
+                        arabicElements++;
+                    }
+                }
+            }
+        }
+
+        const shouldBeRTL = totalElements > 0 && arabicElements / totalElements > 0.5;
+        const direction = shouldBeRTL ? 'rtl' : 'ltr';
+
+        console.warn(`⚠️ AUTO-FIX: Missing defaultDirection, setting to ${direction} (Arabic elements: ${arabicElements}/${totalElements})`);
+        dsl.defaultDirection = direction;
+        autoFixesApplied++;
+    }
+
+    console.log(`✅ DSL validation completed with ${autoFixesApplied} auto-fixes applied`);
 
     // Return validation result
     if (errors.length > 0) {
