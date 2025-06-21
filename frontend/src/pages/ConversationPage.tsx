@@ -7,6 +7,7 @@ import { claudeApiService, type ChatMessage } from '../services/claudeApi';
 const ConversationPage = () => {
     const [inputMessage, setInputMessage] = useState('');
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+    const [activeQuickReportType, setActiveQuickReportType] = useState<string | null>(null); // Новое состояние для защиты от дублей
     const { state, dispatch } = useConversation();
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
@@ -72,9 +73,9 @@ const ConversationPage = () => {
                 content: `❌ Извините, произошла ошибка при обращении к ИИ: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}
                 
 Возможные причины:
-• Проблема с API ключом Claude
-• Сетевая ошибка
-• Превышен лимит запросов
+- Проблема с API ключом Claude
+- Сетевая ошибка
+- Превышен лимит запросов
 
 Попробуйте еще раз или используйте быстрые кнопки создания отчётов ниже.`,
                 timestamp: new Date(),
@@ -185,15 +186,15 @@ ${dslResult.suggestions.map(s => `• ${s}`).join('\n')}
 ${error instanceof Error ? error.message : 'Неизвестная ошибка'}
 
 **Возможные причины:**
-• PDF генератор не запущен на порту 3001
-• Проблема с сетевым подключением  
-• Ошибка в DSL структуре
-• Проблема с Claude API
+- PDF генератор не запущен на порту 3001
+- Проблема с сетевым подключением  
+- Ошибка в DSL структуре
+- Проблема с Claude API
 
 **Решения:**
-• Запустите PDF генератор: \`npm start\`
-• Проверьте подключение к интернету
-• Попробуйте использовать быстрые кнопки создания отчётов`,
+- Запустите PDF генератор: \`npm start\`
+- Проверьте подключение к интернету
+- Попробуйте использовать быстрые кнопки создания отчётов`,
                 timestamp: new Date(),
             };
             dispatch({ type: 'ADD_MESSAGE', payload: errorMessage });
@@ -282,6 +283,14 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
     ];
 
     const handleQuickReport = async (reportType: string, title: string) => {
+        // Защита от двойных кликов
+        if (activeQuickReportType === reportType || state.isLoading) {
+            console.log('⚠️ Запрос уже обрабатывается, игнорируем повторный клик');
+            return;
+        }
+
+        setActiveQuickReportType(reportType); // Устанавливаем активный тип отчета
+
         let reportQuery = '';
 
         if (reportType.includes('-en')) {
@@ -300,15 +309,48 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
             content: reportQuery,
             timestamp: new Date(),
         };
+
+        // Добавляем сообщение только один раз
         dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
+        dispatch({ type: 'SET_LOADING', payload: true });
 
-        // Устанавливаем сообщение и отправляем его
-        setInputMessage(reportQuery);
+        try {
+            console.log('🤖 Отправляем запрос в Claude API...');
 
-        // Небольшая задержка для обновления состояния
-        setTimeout(() => {
-            handleSendMessage();
-        }, 100);
+            // Получаем историю разговора для контекста
+            const conversationHistory = getConversationHistory();
+
+            // Получаем ответ от Claude
+            const aiResponse = await claudeApiService.analyzeUserRequest(
+                reportQuery, // Используем reportQuery напрямую
+                conversationHistory
+            );
+
+            const aiMessage = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant' as const,
+                content: aiResponse,
+                timestamp: new Date(),
+            };
+
+            dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
+            console.log('✅ Получен ответ от Claude');
+
+        } catch (error) {
+            console.error('❌ Ошибка Claude API:', error);
+
+            const errorMessage = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant' as const,
+                content: `❌ Извините, произошла ошибка при обращении к ИИ: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+                timestamp: new Date(),
+            };
+
+            dispatch({ type: 'ADD_MESSAGE', payload: errorMessage });
+        } finally {
+            dispatch({ type: 'SET_LOADING', payload: false });
+            setActiveQuickReportType(null); // Сбрасываем активный тип отчета
+        }
     };
 
     return (
@@ -411,9 +453,16 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
                                             key={report.type}
                                             className="quick-report-btn"
                                             onClick={() => handleQuickReport(report.type, report.title)}
-                                            disabled={state.isLoading}
+                                            disabled={state.isLoading || activeQuickReportType === report.type}
+                                            style={{
+                                                opacity: activeQuickReportType === report.type ? 0.5 : 1,
+                                                cursor: activeQuickReportType === report.type ? 'not-allowed' : 'pointer'
+                                            }}
                                         >
-                                            <div className="quick-report-title">{report.title}</div>
+                                            <div className="quick-report-title">
+                                                {activeQuickReportType === report.type && '⏳ '}
+                                                {report.title}
+                                            </div>
                                             <div className="quick-report-desc">{report.description}</div>
                                         </button>
                                     ))}
