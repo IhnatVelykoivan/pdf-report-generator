@@ -3,11 +3,18 @@ import { useConversation } from '../context/ConversationContext';
 import { useNavigate } from 'react-router-dom';
 import { pdfApiService } from '../services/pdfApi';
 import { claudeApiService, type ChatMessage } from '../services/claudeApi';
+import {
+    detectLanguage,
+    detectReportType,
+    getReportTitle,
+    getLanguageFromReportType,
+    QUICK_REPORT_TYPES
+} from '../config/languages';
 
 const ConversationPage = () => {
     const [inputMessage, setInputMessage] = useState('');
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-    const [activeQuickReportType, setActiveQuickReportType] = useState<string | null>(null); // Новое состояние для защиты от дублей
+    const [activeQuickReportType, setActiveQuickReportType] = useState<string | null>(null);
     const { state, dispatch } = useConversation();
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
@@ -145,11 +152,21 @@ ${dslResult.suggestions.map(s => `• ${s}`).join('\n')}
 
             dispatch({ type: 'SET_DSL', payload: dslResult.dsl });
 
-            // Генерируем PDF
+            // ИСПРАВЛЕНИЕ: Определяем язык и тип отчета для правильного заголовка
+            const lastUserMessage = state.messages
+                .filter(m => m.role === 'user')
+                .pop()?.content || '';
+
+            const userLang = detectLanguage(lastUserMessage);
+            const reportType = detectReportType(lastUserMessage);
+
+            console.log(`🎯 Определен язык: ${userLang}, тип отчета: ${reportType}`);
+
+            // Генерируем PDF с правильным заголовком
             console.log('🔄 Отправляем запрос на генерацию PDF...');
             const result = await pdfApiService.generatePDF({
-                reportType: 'ai-generated',
-                title: dslResult.dsl.pages?.[0]?.elements?.[0]?.content || 'ИИ Отчёт',
+                reportType: reportType || 'ai-generated',
+                title: dslResult.dsl.pages?.[0]?.elements?.[0]?.content || getReportTitle(reportType || 'ai-generated', userLang),
                 description: dslResult.explanation,
                 sections: dslResult.dsl.pages || []
             });
@@ -271,17 +288,6 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
         "Презентация результатов проекта для руководства"
     ];
 
-    const quickReportTypes = [
-        { type: 'marketing', title: '📈 Маркетинг отчёт', description: 'Анализ кампаний и ROI с рекомендациями' },
-        { type: 'sales', title: '💰 Отчёт по продажам', description: 'Динамика продаж и прогнозы развития' },
-        { type: 'financial', title: '💼 Финансовый отчёт', description: 'Бюджет, расходы и рентабельность' },
-        { type: 'analytics', title: '📊 Аналитика', description: 'Глубокий анализ данных и трендов' },
-        { type: 'marketing-en', title: '📈 Marketing Report', description: 'Campaign analysis and ROI metrics' },
-        { type: 'sales-en', title: '💰 Sales Report', description: 'Sales dynamics and forecasts' },
-        { type: 'marketing-ar', title: '📈 تقرير التسويق', description: 'تحليل الحملات والعائد على الاستثمار' },
-        { type: 'financial-ar', title: '💼 التقرير المالي', description: 'الميزانية والمصروفات والربحية' }
-    ];
-
     const handleQuickReport = async (reportType: string, title: string) => {
         // Защита от двойных кликов
         if (activeQuickReportType === reportType || state.isLoading) {
@@ -289,19 +295,45 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
             return;
         }
 
-        setActiveQuickReportType(reportType); // Устанавливаем активный тип отчета
+        setActiveQuickReportType(reportType);
 
+        // Определяем язык из типа отчета
+        const language = getLanguageFromReportType(reportType);
         let reportQuery = '';
 
-        if (reportType.includes('-en')) {
-            reportQuery = `Create a professional ${title.replace(/📈|💰|💼|📊/g, '').trim()} with detailed analytics, charts, and insights for business decision-making.`;
-        } else if (reportType.includes('-ar')) {
-            reportQuery = `إنشاء ${title.replace(/📈|💰|💼|📊/g, '').trim()} احترافي مع تحليل مفصل ورسوم بيانية ورؤى لاتخاذ القرارات التجارية.`;
+        if (language === 'en') {
+            reportQuery = `Create a professional ${title.replace(/[📈💰💼📊]/g, '').trim()} with detailed analytics, charts, and insights for business decision-making.
+            
+IMPORTANT: All content must be in English, including:
+- Report title
+- Section headers
+- All text content
+- Chart titles and labels
+- Conclusion`;
+        } else if (language === 'ar') {
+            reportQuery = `إنشاء ${title.replace(/[📈💰💼📊]/g, '').trim()} احترافي مع تحليل مفصل ورسوم بيانية ورؤى لاتخاذ القرارات التجارية.
+
+مهم: يجب أن يكون كل المحتوى باللغة العربية، بما في ذلك:
+- عنوان التقرير
+- عناوين الأقسام
+- جميع النصوص
+- عناوين وتسميات الرسوم البيانية
+- الخلاصة`;
         } else {
-            reportQuery = `Создать профессиональный ${title.replace(/📈|💰|💼|📊/g, '').trim().toLowerCase()} с подробной аналитикой, графиками и инсайтами для принятия бизнес-решений.`;
+            reportQuery = `Создать профессиональный ${title.replace(/[📈💰💼📊]/g, '').trim().toLowerCase()} с подробной аналитикой, графиками и инсайтами для принятия бизнес-решений.
+
+ВАЖНО: Весь контент должен быть на русском языке, включая:
+- Заголовок отчета
+- Заголовки разделов
+- Весь текстовый контент
+- Заголовки и подписи графиков
+- Заключение`;
         }
 
-        console.log('🎯 Создаём отчёт типа:', reportType, 'с запросом:', reportQuery);
+        // Добавляем явное указание языка
+        reportQuery += `\n\nLanguage for this report: ${language === 'en' ? 'English' : language === 'ar' ? 'Arabic' : 'Russian'}`;
+
+        console.log('🎯 Создаём отчёт типа:', reportType, 'на языке:', language, 'с запросом:', reportQuery);
 
         const userMessage = {
             id: Date.now().toString(),
@@ -310,19 +342,15 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
             timestamp: new Date(),
         };
 
-        // Добавляем сообщение только один раз
         dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
         dispatch({ type: 'SET_LOADING', payload: true });
 
         try {
             console.log('🤖 Отправляем запрос в Claude API...');
 
-            // Получаем историю разговора для контекста
             const conversationHistory = getConversationHistory();
-
-            // Получаем ответ от Claude
             const aiResponse = await claudeApiService.analyzeUserRequest(
-                reportQuery, // Используем reportQuery напрямую
+                reportQuery,
                 conversationHistory
             );
 
@@ -349,7 +377,7 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
             dispatch({ type: 'ADD_MESSAGE', payload: errorMessage });
         } finally {
             dispatch({ type: 'SET_LOADING', payload: false });
-            setActiveQuickReportType(null); // Сбрасываем активный тип отчета
+            setActiveQuickReportType(null);
         }
     };
 
@@ -448,7 +476,7 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
                             <div className="quick-reports">
                                 <h3>⚡ Быстрое создание отчётов:</h3>
                                 <div className="quick-reports-grid">
-                                    {quickReportTypes.map((report) => (
+                                    {QUICK_REPORT_TYPES.map((report) => (
                                         <button
                                             key={report.type}
                                             className="quick-report-btn"
@@ -486,7 +514,7 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
                         disabled={state.isLoading}
                     />
                     <button
-                        onClick={handleSendMessage}
+                        onClick={() => handleSendMessage()}
                         disabled={!inputMessage.trim() || state.isLoading}
                         className="send-button"
                     >

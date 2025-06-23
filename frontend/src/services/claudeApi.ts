@@ -1,3 +1,9 @@
+import {
+    detectLanguage,
+    getReportTitle,
+    type SupportedLanguage
+} from '../config/languages';
+
 export interface ChatMessage {
     role: 'user' | 'assistant';
     content: string;
@@ -10,7 +16,7 @@ export interface DSLGenerationResult {
 }
 
 export class ClaudeApiService {
-    private baseUrl: string;
+    private readonly baseUrl: string;
 
     constructor() {
         this.baseUrl = import.meta.env.VITE_PDF_API_URL || 'http://localhost:3001';
@@ -61,7 +67,15 @@ export class ClaudeApiService {
     // Генерация DSL структуры на основе разговора
     async generateDSLFromConversation(conversationHistory: ChatMessage[]): Promise<DSLGenerationResult> {
         try {
-            console.log('📝 Генерируем DSL через бэк-энд...');
+            console.log('📝 Генерируем DSL через бэк-енд...');
+
+            // Определяем ожидаемый язык из последнего сообщения пользователя
+            const lastUserMessage = conversationHistory
+                .filter(msg => msg.role === 'user')
+                .pop()?.content || '';
+
+            const expectedLang = detectLanguage(lastUserMessage);
+            console.log(`🌐 Ожидаемый язык для DSL: ${expectedLang}`);
 
             const response = await fetch(`${this.baseUrl}/api/claude/generate-dsl`, {
                 method: 'POST',
@@ -69,7 +83,8 @@ export class ClaudeApiService {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    conversationHistory
+                    conversationHistory,
+                    expectedLanguage: expectedLang
                 }),
             });
 
@@ -79,13 +94,55 @@ export class ClaudeApiService {
             }
 
             const result = await response.json();
-            console.log('✅ DSL создан через бэк-енд:', result);
+
+            // Валидируем язык результата
+            if (!this.validateDSLLanguage(result.dsl, expectedLang)) {
+                console.warn('⚠️ DSL сгенерирован не на том языке, используем fallback');
+                return this.createFallbackDSL(conversationHistory);
+            }
+
+            console.log('✅ DSL создан через бэк-енд на правильном языке:', result);
 
             return result;
         } catch (error) {
             console.error('❌ Ошибка генерации DSL:', error);
             return this.createFallbackDSL(conversationHistory);
         }
+    }
+
+    // Функция для валидации языка DSL
+    private validateDSLLanguage(dsl: any, expectedLang: SupportedLanguage): boolean {
+        if (!dsl.pages || !Array.isArray(dsl.pages)) {
+            return false;
+        }
+
+        // Собираем весь текст из DSL
+        let allText = '';
+
+        for (const page of dsl.pages) {
+            if (page.elements) {
+                for (const element of page.elements) {
+                    if (element.type === 'text' && element.content) {
+                        allText += element.content + ' ';
+                    }
+                    if (element.type === 'chart' && element.content) {
+                        if (element.content.title) {
+                            allText += element.content.title + ' ';
+                        }
+                        if (element.content.data?.labels) {
+                            allText += element.content.data.labels.join(' ') + ' ';
+                        }
+                    }
+                }
+            }
+        }
+
+        // Определяем язык контента
+        const detectedLang = detectLanguage(allText);
+
+        console.log(`🔍 Валидация языка DSL: ожидается ${expectedLang}, обнаружен ${detectedLang}`);
+
+        return detectedLang === expectedLang;
     }
 
     // Запрос фидбека и улучшений
@@ -131,19 +188,22 @@ export class ClaudeApiService {
             .filter(msg => msg.role === 'user')
             .pop()?.content || 'Базовый отчёт';
 
-        const language = this.detectLanguage(lastUserMessage);
+        const language = detectLanguage(lastUserMessage);
         const reportType = this.detectReportType(lastUserMessage);
+        const isRTL = language === 'ar';
+
+        console.log(`🔧 Создаём fallback DSL: язык=${language}, тип=${reportType}`);
 
         return {
             dsl: {
                 template: 'default',
-                defaultDirection: language === 'arabic' ? 'rtl' : 'ltr',
+                defaultDirection: isRTL ? 'rtl' : 'ltr',
                 defaultFont: 'DejaVuSans',
                 pages: [{
                     elements: [
                         {
                             type: 'text',
-                            content: this.extractTitle(lastUserMessage),
+                            content: getReportTitle(reportType, language),
                             position: { x: 50, y: 100 },
                             style: {
                                 font: 'DejaVuSans',
@@ -151,7 +211,7 @@ export class ClaudeApiService {
                                 color: '#2C3E50',
                                 width: 495,
                                 align: 'center',
-                                direction: language === 'arabic' ? 'rtl' : 'ltr'
+                                direction: isRTL ? 'rtl' : 'ltr'
                             }
                         },
                         {
@@ -164,8 +224,8 @@ export class ClaudeApiService {
                                 color: '#34495E',
                                 width: 495,
                                 lineBreak: true,
-                                direction: language === 'arabic' ? 'rtl' : 'ltr',
-                                align: language === 'arabic' ? 'right' : 'left'
+                                direction: isRTL ? 'rtl' : 'ltr',
+                                align: isRTL ? 'right' : 'left'
                             }
                         },
                         {
@@ -178,23 +238,23 @@ export class ClaudeApiService {
                                 color: '#2C3E50',
                                 width: 495,
                                 lineBreak: true,
-                                direction: language === 'arabic' ? 'rtl' : 'ltr',
-                                align: language === 'arabic' ? 'right' : 'left'
+                                direction: isRTL ? 'rtl' : 'ltr',
+                                align: isRTL ? 'right' : 'left'
                             }
                         }
                     ]
                 }]
             },
-            explanation: language === 'arabic' ?
+            explanation: language === 'ar' ?
                 `تم إنشاء تقرير ${reportType} باللغة العربية` :
-                language === 'english' ?
+                language === 'en' ?
                     `Created ${reportType} report in English` :
                     `Создан ${reportType} отчёт на русском языке`,
-            suggestions: language === 'arabic' ? [
+            suggestions: language === 'ar' ? [
                 'إضافة المزيد من الرسوم البيانية',
                 'تضمين أقسام إضافية',
                 'تغيير نمط التصميم'
-            ] : language === 'english' ? [
+            ] : language === 'en' ? [
                 'Add more charts and diagrams',
                 'Include additional sections',
                 'Change design style'
@@ -206,10 +266,10 @@ export class ClaudeApiService {
         };
     }
 
-    // Добавляем правильную функцию для генерации основного контента
-    private generateMainContent(reportType: string, language: 'russian' | 'english' | 'arabic'): string {
+    // Генерация основного контента
+    private generateMainContent(reportType: string, language: SupportedLanguage): string {
         const contentMap = {
-            arabic: {
+            ar: {
                 marketing: `تقرير تحليل التسويق
 
 1. نظرة عامة على الأنشطة التسويقية
@@ -295,7 +355,7 @@ export class ClaudeApiService {
    • التوصيات
    • الخطوات التالية`
             },
-            english: {
+            en: {
                 marketing: `MARKETING ANALYTICS REPORT
 
 1. MARKETING ACTIVITIES OVERVIEW
@@ -381,7 +441,7 @@ export class ClaudeApiService {
    • Recommendations
    • Next steps`
             },
-            russian: {
+            ru: {
                 marketing: `АНАЛИТИЧЕСКИЙ ОТЧЁТ ПО МАРКЕТИНГУ
 
 1. ОБЗОР МАРКЕТИНГОВОЙ ДЕЯТЕЛЬНОСТИ
@@ -469,51 +529,11 @@ export class ClaudeApiService {
             }
         };
 
-        const cleanReportType = reportType.replace(/-en$|-ar$/, '') as keyof typeof contentMap.russian;
-        return contentMap[language]?.[cleanReportType] || contentMap[language]?.general || contentMap.russian.general;
-    }
-
-    // Обновляем extractTitle чтобы возвращать заголовок на правильном языке
-    private extractTitle(text: string): string {
-        const language = this.detectLanguage(text);
-        const reportType = this.detectReportType(text);
-
-        // Возвращаем заголовок на правильном языке
-        const titles = {
-            arabic: {
-                marketing: 'تقرير التسويق',
-                sales: 'تقرير المبيعات',
-                financial: 'التقرير المالي',
-                analytics: 'تقرير التحليلات',
-                general: 'التقرير العام'
-            },
-            english: {
-                marketing: 'Marketing Report',
-                sales: 'Sales Report',
-                financial: 'Financial Report',
-                analytics: 'Analytics Report',
-                general: 'General Report'
-            },
-            russian: {
-                marketing: 'Маркетинговый отчёт',
-                sales: 'Отчёт по продажам',
-                financial: 'Финансовый отчёт',
-                analytics: 'Аналитический отчёт',
-                general: 'Общий отчёт'
-            }
-        };
-
-        return titles[language as keyof typeof titles]?.[reportType as keyof typeof titles.arabic] ||
-            titles.russian.general;
+        const cleanReportType = reportType.replace(/-en$|-ar$/, '') as keyof typeof contentMap.ru;
+        return contentMap[language]?.[cleanReportType] || contentMap[language]?.general || contentMap.ru.general;
     }
 
     // Утилитарные методы
-    private detectLanguage(text: string): 'russian' | 'english' | 'arabic' {
-        if (/[\u0600-\u06FF]/.test(text)) return 'arabic';
-        if (/[а-яё]/i.test(text)) return 'russian';
-        return 'english';
-    }
-
     private detectReportType(text: string): string {
         const lower = text.toLowerCase();
         if (lower.includes('маркетинг') || lower.includes('marketing')) return 'marketing';
@@ -523,23 +543,23 @@ export class ClaudeApiService {
         return 'general';
     }
 
-    private generateContent(reportType: string, language: string): string {
+    private generateContent(reportType: string, language: SupportedLanguage): string {
         const content = {
-            russian: {
+            ru: {
                 marketing: 'Маркетинговый отчёт с анализом кампаний и ROI',
                 sales: 'Отчёт по продажам с динамикой и прогнозами',
                 financial: 'Финансовый отчёт с показателями эффективности',
                 analytics: 'Аналитический отчёт с трендами и инсайтами',
                 general: 'Общий отчёт с ключевыми показателями'
             },
-            english: {
+            en: {
                 marketing: 'Marketing report with campaign analysis and ROI',
                 sales: 'Sales report with dynamics and forecasts',
                 financial: 'Financial report with performance metrics',
                 analytics: 'Analytics report with trends and insights',
                 general: 'General report with key indicators'
             },
-            arabic: {
+            ar: {
                 marketing: 'تقرير تسويقي مع تحليل الحملات والعائد على الاستثمار',
                 sales: 'تقرير المبيعات مع الديناميكيات والتوقعات',
                 financial: 'تقرير مالي مع مقاييس الأداء',
@@ -548,8 +568,8 @@ export class ClaudeApiService {
             }
         };
 
-        return content[language as keyof typeof content]?.[reportType as keyof typeof content.russian] ||
-            content.russian.general;
+        return content[language]?.[reportType as keyof typeof content.ru] ||
+            content.ru.general;
     }
 }
 

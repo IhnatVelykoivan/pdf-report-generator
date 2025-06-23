@@ -17,6 +17,7 @@ interface ClaudeRequest {
 
 interface DSLGenerationRequest {
     conversationHistory: ChatMessage[];
+    expectedLanguage?: 'russian' | 'english' | 'arabic';
 }
 
 interface FeedbackRequest {
@@ -74,15 +75,12 @@ async function callClaudeAPI(messages: ChatMessage[], systemPrompt: string, maxT
         console.error('❌ Ошибка Claude API:', error);
 
         if (error.response) {
-            // Axios error with response
             const statusCode = error.response.status || 500;
             const errorMessage = error.response.data?.error?.message || error.message || 'Unknown error';
             throw new Error(`Claude API Error: ${statusCode} - ${errorMessage}`);
         } else if (error.request) {
-            // Axios error without response
             throw new Error(`Network Error: ${error.message || 'No response from server'}`);
         } else {
-            // Other error
             throw new Error(`Request Error: ${error.message || 'Unknown error'}`);
         }
     }
@@ -137,20 +135,55 @@ router.post('/chat', async (req, res) => {
 // Эндпоинт для генерации DSL
 router.post('/generate-dsl', async (req, res) => {
     try {
-        const { conversationHistory }: DSLGenerationRequest = req.body;
+        const { conversationHistory, expectedLanguage }: DSLGenerationRequest = req.body;
 
         if (!conversationHistory || !Array.isArray(conversationHistory)) {
             return res.status(400).json({ error: 'Необходима история разговора' });
         }
 
+        // Определяем язык из последнего сообщения пользователя или используем переданный
+        const lastUserMessage = conversationHistory
+            .filter(msg => msg.role === 'user')
+            .pop()?.content || '';
+
+        const detectedLang = expectedLanguage || detectLanguage(lastUserMessage);
+
+        // Создаем языко-специфичные инструкции
+        const languageInstruction = detectedLang === 'arabic' ?
+            '\n\n🚨 КРИТИЧЕСКИ ВАЖНО: Пользователь написал на арабском или выбрал арабский отчет. ВСЕ тексты в DSL (заголовки, описания, контент, подписи графиков, заключение) должны быть ТОЛЬКО на арабском языке! НЕ используй русский язык для заголовков!' :
+            detectedLang === 'english' ?
+                '\n\n🚨 CRITICAL: User wrote in English or selected English report. ALL texts in DSL (titles, descriptions, content, chart labels, conclusion) must be ONLY in English! DO NOT use Russian for titles!' :
+                '\n\n🚨 КРИТИЧЕСКИ ВАЖНО: Пользователь написал на русском. ВСЕ тексты в DSL должны быть ТОЛЬКО на русском языке!';
+
         const systemPrompt = `Ты - эксперт по созданию DSL (Domain Specific Language) структур для PDF генератора.
 
 На основе разговора с пользователем создай JSON структуру для генерации PDF отчёта.
 
-КРИТИЧЕСКИ ВАЖНО: 
-1. Если пользователь написал запрос на арабском языке или в запросе упоминается арабский отчет/تقرير - ВСЕ тексты в DSL должны быть на арабском языке!
-2. Если пользователь написал на английском или упоминается English report - тексты на английском
-3. Если пользователь написал на русском - тексты на русском
+${languageInstruction}
+
+ПРАВИЛА ГЕНЕРАЦИИ ЗАГОЛОВКОВ:
+1. НЕ используй "ИИ Отчёт" как заголовок!
+2. Используй правильный заголовок на нужном языке:
+   - Для маркетингового отчета:
+     * Арабский: "تقرير التسويق"
+     * Английский: "Marketing Report"
+     * Русский: "Маркетинговый отчёт"
+   - Для отчета по продажам:
+     * Арабский: "تقرير المبيعات"
+     * Английский: "Sales Report"
+     * Русский: "Отчёт по продажам"
+   - Для финансового отчета:
+     * Арабский: "التقرير المالي"
+     * Английский: "Financial Report"
+     * Русский: "Финансовый отчёт"
+   - Для аналитического отчета:
+     * Арабский: "تقرير التحليلات"
+     * Английский: "Analytics Report"
+     * Русский: "Аналитический отчёт"
+   - Для общего отчета:
+     * Арабский: "التقرير العام"
+     * Английский: "General Report"
+     * Русский: "Общий отчёт"
 
 ВАЖНО: Используй следующие правила для шрифтов и направления текста:
 - Для арабского текста: font: "DejaVuSans", direction: "rtl", align: "right"
@@ -163,13 +196,16 @@ router.post('/generate-dsl', async (req, res) => {
 - defaultFont: "DejaVuSans"
 - pages: массив страниц с элементами
 
-Определи язык из запроса пользователя и создай ВСЕ тексты (заголовки, описания, контент, подписи графиков) на том же языке!
+ПРОВЕРКА ПЕРЕД ОТПРАВКОЙ:
+✅ Заголовок отчета НЕ "ИИ Отчёт", а правильный перевод
+✅ Все тексты на одном языке (заданном пользователем)
+✅ Правильные настройки шрифта и направления
 
 Ответь ТОЛЬКО в формате JSON:
 {
     "dsl": { DSL структура },
-    "explanation": "Объяснение структуры отчёта",
-    "suggestions": ["предложение 1", "предложение 2"]
+    "explanation": "Объяснение структуры отчёта на языке пользователя",
+    "suggestions": ["предложение 1", "предложение 2", "предложение 3"]
 }`;
 
         const conversationText = conversationHistory
@@ -180,7 +216,9 @@ router.post('/generate-dsl', async (req, res) => {
 
 ${conversationText}
 
-Создай подробную DSL структуру для PDF отчёта.`;
+${languageInstruction}
+
+Создай подробную DSL структуру для PDF отчёта. НЕ используй "ИИ Отчёт" как заголовок!`;
 
         const response = await callClaudeAPI([
             { role: 'user', content: prompt }
@@ -226,10 +264,12 @@ router.post('/feedback', async (req, res) => {
 - Для арабского текста: font: "DejaVuSans", direction: "rtl", align: "right"
 - Для графиков с арабским: rtl: true, textDirection: "rtl", font: {family: "DejaVuSans"}
 
+КРИТИЧЕСКИ ВАЖНО: Сохраняй язык оригинального отчета! Не меняй язык контента.
+
 Ответь ТОЛЬКО в JSON формате:
 {
     "dsl": { обновлённая DSL структура },
-    "explanation": "Объяснение внесённых изменений",
+    "explanation": "Объяснение внесённых изменений на языке отчета",
     "suggestions": ["дополнительное предложение 1", "предложение 2"]
 }`;
 
@@ -239,7 +279,7 @@ ${JSON.stringify(currentDSL, null, 2)}
 Фидбек пользователя:
 ${userFeedback}
 
-Улучши DSL структуру согласно фидбеку.`;
+Улучши DSL структуру согласно фидбеку, сохраняя оригинальный язык отчета.`;
 
         const response = await callClaudeAPI([
             { role: 'user', content: prompt }
@@ -273,7 +313,7 @@ ${userFeedback}
     }
 });
 
-// ОБНОВЛЕННАЯ утилитарная функция для создания fallback DSL
+// Улучшенная функция для создания fallback DSL
 function createFallbackDSL(conversationHistory: ChatMessage[]) {
     const lastUserMessage = conversationHistory
         .filter(msg => msg.role === 'user')
@@ -283,24 +323,22 @@ function createFallbackDSL(conversationHistory: ChatMessage[]) {
     const reportType = detectReportType(lastUserMessage);
     const isRTL = language === 'arabic';
 
-    console.log(`🔧 Создаём улучшенный fallback DSL: язык=${language}, тип=${reportType}, RTL=${isRTL}`);
+    console.log(`🔧 Создаём fallback DSL: язык=${language}, тип=${reportType}, RTL=${isRTL}`);
 
-    // ВАЖНО: Используем правильные функции для получения контента на нужном языке
-    const title = language === 'arabic' ? 'تقرير التسويق' :
-        language === 'english' ? 'Marketing Report' :
-            'Маркетинговый отчёт';
+    // ВАЖНО: Используем правильные заголовки для каждого языка
+    const title = extractTitle(reportType, language);
 
     // Получаем описание на правильном языке
     const description = language === 'arabic' ?
-        'تقرير تسويقي احترافي مع تحليل مفصل ورسوم بيانية ورؤى لاتخاذ القرارات التجارية' :
+        'تقرير احترافي مع تحليل مفصل ورسوم بيانية ورؤى لاتخاذ القرارات التجارية' :
         language === 'english' ?
-            'Professional marketing report with detailed analysis, charts, and insights for business decision-making' :
-            'Профессиональный маркетинговый отчёт с подробной аналитикой, графиками и инсайтами';
+            'Professional report with detailed analysis, charts, and insights for business decision-making' :
+            'Профессиональный отчёт с подробной аналитикой, графиками и инсайтами';
 
     // Используем функцию generateMainContent для получения основного контента
     const mainContent = generateMainContent(reportType, language);
 
-    // КРИТИЧЕСКИ ВАЖНО: Функция для создания текстового элемента с гарантированными параметрами
+    // Функция для создания текстового элемента с гарантированными параметрами
     const createTextElement = (text: string, position: {x: number, y: number}, extraStyle: any = {}) => {
         const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
         const elementIsRTL = hasArabic || isRTL;
@@ -400,10 +438,10 @@ function createFallbackDSL(conversationHistory: ChatMessage[]) {
     return {
         dsl: validatedDSL,
         explanation: language === 'arabic' ?
-            `تم إنشاء تقرير ${reportType} باللغة العربية` :
+            `تم إنشاء ${title}` :
             language === 'english' ?
-                `Created ${reportType} report in English` :
-                `Создан ${reportType} отчёт на русском языке`,
+                `Created ${title}` :
+                `Создан ${title}`,
         suggestions: language === 'arabic' ? [
             'إضافة المزيد من الرسوم البيانية والمخططات',
             'تضمين أقسام إضافية',
@@ -423,7 +461,7 @@ function createFallbackDSL(conversationHistory: ChatMessage[]) {
     };
 }
 
-// НОВАЯ функция для гарантированной проверки DSL
+// Функция для гарантированной проверки DSL
 function ensureDSLFontsAndDirection(dsl: any): any {
     console.log('🔍 Проверяем DSL на корректность шрифтов и направления...');
 
@@ -446,7 +484,7 @@ function ensureDSLFontsAndDirection(dsl: any): any {
                     element.style = {};
                 }
 
-                // ПРИНУДИТЕЛЬНО устанавливаем правильные параметры
+                // Устанавливаем правильные параметры
                 if (hasArabic) {
                     element.style.font = 'DejaVuSans';
                     element.style.direction = 'rtl';
@@ -456,7 +494,7 @@ function ensureDSLFontsAndDirection(dsl: any): any {
                         element.style.align = element.style.align === 'center' ? 'center' : 'right';
                     }
 
-                    console.log(`🔧 ИСПРАВЛЕН арабский элемент: "${content.substring(0, 30)}..." -> font=DejaVuSans, direction=rtl, align=${element.style.align}`);
+                    console.log(`🔧 Проверен арабский элемент: "${content.substring(0, 30)}..." -> font=DejaVuSans, direction=rtl, align=${element.style.align}`);
                 } else {
                     // Для не-арабского текста
                     if (!element.style.font) {
@@ -486,7 +524,7 @@ function ensureDSLFontsAndDirection(dsl: any): any {
                         chart.options.rtl = true;
                         chart.options.font = { family: 'DejaVuSans' };
                         chart.textDirection = 'rtl';
-                        console.log(`🔧 ИСПРАВЛЕН заголовок графика: "${chart.title}" -> rtl=true, font=DejaVuSans, textDirection=rtl`);
+                        console.log(`🔧 Проверен заголовок графика: "${chart.title}" -> rtl=true, font=DejaVuSans, textDirection=rtl`);
                     }
                 }
 
@@ -503,7 +541,7 @@ function ensureDSLFontsAndDirection(dsl: any): any {
                         chart.options.rtl = true;
                         chart.options.font = { family: 'DejaVuSans' };
                         chart.textDirection = 'rtl';
-                        console.log(`🔧 ИСПРАВЛЕНЫ подписи графика с арабским текстом -> rtl=true, font=DejaVuSans, textDirection=rtl`);
+                        console.log(`🔧 Проверены подписи графика с арабским текстом -> rtl=true, font=DejaVuSans, textDirection=rtl`);
                     }
                 }
             }
@@ -790,17 +828,15 @@ function detectLanguage(text: string): 'russian' | 'english' | 'arabic' {
 
 function detectReportType(text: string): string {
     const lower = text.toLowerCase();
-    if (lower.includes('маркетинг') || lower.includes('marketing')) return 'marketing';
-    if (lower.includes('продаж') || lower.includes('sales')) return 'sales';
-    if (lower.includes('финанс') || lower.includes('financial')) return 'financial';
-    if (lower.includes('аналитик') || lower.includes('analytics')) return 'analytics';
+    if (lower.includes('маркетинг') || lower.includes('marketing') || lower.includes('تسويق')) return 'marketing';
+    if (lower.includes('продаж') || lower.includes('sales') || lower.includes('مبيعات')) return 'sales';
+    if (lower.includes('финанс') || lower.includes('financial') || lower.includes('مالي')) return 'financial';
+    if (lower.includes('аналитик') || lower.includes('analytics') || lower.includes('تحليل')) return 'analytics';
     return 'general';
 }
 
-function extractTitle(text: string): string {
-    const language = detectLanguage(text);
-    const reportType = detectReportType(text);
-
+// Улучшенная функция extractTitle - НЕ возвращает "ИИ Отчёт"
+function extractTitle(reportType: string, language: string): string {
     // Возвращаем заголовок на правильном языке
     const titles = {
         arabic: {
@@ -827,7 +863,7 @@ function extractTitle(text: string): string {
     };
 
     return titles[language as keyof typeof titles]?.[reportType as keyof typeof titles.arabic] ||
-        titles.russian.general;
+        titles[language === 'arabic' ? 'arabic' : language === 'english' ? 'english' : 'russian'].general;
 }
 
 function generateContent(reportType: string, language: string): string {
