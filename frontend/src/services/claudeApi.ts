@@ -182,6 +182,38 @@ export class ClaudeApiService {
         }
     }
 
+    // Функция для получения локализованного типа отчёта
+    private getLocalizedReportType(reportType: string, language: SupportedLanguage): string {
+        const translations: Record<SupportedLanguage, Record<string, string>> = {
+            ar: {
+                marketing: 'تقرير تسويقي',
+                sales: 'تقرير المبيعات',
+                financial: 'تقرير مالي',
+                analytics: 'تقرير تحليلي',
+                general: 'تقرير عام',
+                'ai-generated': 'تقرير ذكاء اصطناعي'
+            },
+            en: {
+                marketing: 'marketing report',
+                sales: 'sales report',
+                financial: 'financial report',
+                analytics: 'analytics report',
+                general: 'general report',
+                'ai-generated': 'AI-generated report'
+            },
+            ru: {
+                marketing: 'маркетинговый отчёт',
+                sales: 'отчёт по продажам',
+                financial: 'финансовый отчёт',
+                analytics: 'аналитический отчёт',
+                general: 'общий отчёт',
+                'ai-generated': 'ИИ-сгенерированный отчёт'
+            }
+        };
+
+        return translations[language]?.[reportType] || translations[language]?.general || reportType;
+    }
+
     // Создание резервной DSL структуры (если бэк-энд недоступен)
     private createFallbackDSL(conversationHistory: ChatMessage[]): DSLGenerationResult {
         const lastUserMessage = conversationHistory
@@ -193,6 +225,9 @@ export class ClaudeApiService {
         const isRTL = language === 'ar';
 
         console.log(`🔧 Создаём fallback DSL: язык=${language}, тип=${reportType}`);
+
+        // Получаем локализованный тип отчёта для объяснения
+        const localizedReportType = this.getLocalizedReportType(reportType, language);
 
         return {
             dsl: {
@@ -246,10 +281,10 @@ export class ClaudeApiService {
                 }]
             },
             explanation: language === 'ar' ?
-                `تم إنشاء تقرير ${reportType} باللغة العربية` :
+                `تم إنشاء ${localizedReportType} باللغة العربية` :
                 language === 'en' ?
-                    `Created ${reportType} report in English` :
-                    `Создан ${reportType} отчёт на русском языке`,
+                    `Created ${localizedReportType} in English` :
+                    `Создан ${localizedReportType} на русском языке`,
             suggestions: language === 'ar' ? [
                 'إضافة المزيد من الرسوم البيانية',
                 'تضمين أقسام إضافية',
@@ -268,7 +303,7 @@ export class ClaudeApiService {
 
     // Генерация основного контента
     private generateMainContent(reportType: string, language: SupportedLanguage): string {
-        const contentMap = {
+        const contentMap: Record<SupportedLanguage, Record<string, string>> = {
             ar: {
                 marketing: `تقرير تحليل التسويق
 
@@ -544,7 +579,7 @@ export class ClaudeApiService {
     }
 
     private generateContent(reportType: string, language: SupportedLanguage): string {
-        const content = {
+        const content: Record<SupportedLanguage, Record<string, string>> = {
             ru: {
                 marketing: 'Маркетинговый отчёт с анализом кампаний и ROI',
                 sales: 'Отчёт по продажам с динамикой и прогнозами',

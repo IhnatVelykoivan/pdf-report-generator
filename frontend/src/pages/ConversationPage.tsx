@@ -8,7 +8,7 @@ import {
     detectReportType,
     getReportTitle,
     getLanguageFromReportType,
-    QUICK_REPORT_TYPES
+    QUICK_REPORT_TYPES,
 } from '../config/languages';
 
 const ConversationPage = () => {

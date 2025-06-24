@@ -313,6 +313,39 @@ ${userFeedback}
     }
 });
 
+// Функция для получения локализованного типа отчёта
+function getLocalizedReportType(reportType: string, language: string): string {
+    const translations: Record<string, Record<string, string>> = {
+        arabic: {
+            marketing: 'تقرير تسويقي',
+            sales: 'تقرير المبيعات',
+            financial: 'تقرير مالي',
+            analytics: 'تقرير تحليلي',
+            general: 'تقرير عام',
+            'ai-generated': 'تقرير ذكاء اصطناعي'
+        },
+        english: {
+            marketing: 'marketing report',
+            sales: 'sales report',
+            financial: 'financial report',
+            analytics: 'analytics report',
+            general: 'general report',
+            'ai-generated': 'AI-generated report'
+        },
+        russian: {
+            marketing: 'маркетинговый отчёт',
+            sales: 'отчёт по продажам',
+            financial: 'финансовый отчёт',
+            analytics: 'аналитический отчёт',
+            general: 'общий отчёт',
+            'ai-generated': 'ИИ-сгенерированный отчёт'
+        }
+    };
+
+    const langTranslations = translations[language] || translations.russian;
+    return langTranslations[reportType] || langTranslations.general || reportType;
+}
+
 // Улучшенная функция для создания fallback DSL
 function createFallbackDSL(conversationHistory: ChatMessage[]) {
     const lastUserMessage = conversationHistory
@@ -327,6 +360,9 @@ function createFallbackDSL(conversationHistory: ChatMessage[]) {
 
     // ВАЖНО: Используем правильные заголовки для каждого языка
     const title = extractTitle(reportType, language);
+
+    // Получаем локализованный тип отчёта для объяснения
+    const localizedReportType = getLocalizedReportType(reportType, language);
 
     // Получаем описание на правильном языке
     const description = language === 'arabic' ?
@@ -438,10 +474,10 @@ function createFallbackDSL(conversationHistory: ChatMessage[]) {
     return {
         dsl: validatedDSL,
         explanation: language === 'arabic' ?
-            `تم إنشاء ${title}` :
+            `تم إنشاء ${localizedReportType} باللغة العربية` :
             language === 'english' ?
-                `Created ${title}` :
-                `Создан ${title}`,
+                `Created ${localizedReportType} in English` :
+                `Создан ${localizedReportType} на русском языке`,
         suggestions: language === 'arabic' ? [
             'إضافة المزيد من الرسوم البيانية والمخططات',
             'تضمين أقسام إضافية',
@@ -554,7 +590,7 @@ function ensureDSLFontsAndDirection(dsl: any): any {
 
 // Функция generateMainContent
 function generateMainContent(reportType: string, language: 'russian' | 'english' | 'arabic'): string {
-    const contentMap = {
+    const contentMap: Record<string, Record<string, string>> = {
         arabic: {
             marketing: `تقرير تحليل التسويق
 
@@ -815,8 +851,9 @@ function generateMainContent(reportType: string, language: 'russian' | 'english'
         }
     };
 
-    const cleanReportType = reportType.replace(/-en$|-ar$/, '') as keyof typeof contentMap.russian;
-    return contentMap[language]?.[cleanReportType] || contentMap[language]?.general || '';
+    const cleanReportType = reportType.replace(/-en$|-ar$/, '');
+    const langContent = contentMap[language] || contentMap.russian;
+    return langContent[cleanReportType] || langContent.general || '';
 }
 
 // Утилитарные функции
@@ -838,7 +875,7 @@ function detectReportType(text: string): string {
 // Улучшенная функция extractTitle - НЕ возвращает "ИИ Отчёт"
 function extractTitle(reportType: string, language: string): string {
     // Возвращаем заголовок на правильном языке
-    const titles = {
+    const titles: Record<string, Record<string, string>> = {
         arabic: {
             marketing: 'تقرير التسويق',
             sales: 'تقرير المبيعات',
@@ -862,12 +899,12 @@ function extractTitle(reportType: string, language: string): string {
         }
     };
 
-    return titles[language as keyof typeof titles]?.[reportType as keyof typeof titles.arabic] ||
-        titles[language === 'arabic' ? 'arabic' : language === 'english' ? 'english' : 'russian'].general;
+    const langTitles = titles[language] || titles.russian;
+    return langTitles[reportType] || langTitles.general;
 }
 
 function generateContent(reportType: string, language: string): string {
-    const content = {
+    const content: Record<string, Record<string, string>> = {
         russian: {
             marketing: 'Маркетинговый отчёт с анализом кампаний и ROI',
             sales: 'Отчёт по продажам с динамикой и прогнозами',
@@ -891,8 +928,8 @@ function generateContent(reportType: string, language: string): string {
         }
     };
 
-    return content[language as keyof typeof content]?.[reportType as keyof typeof content.russian] ||
-        content.russian.general;
+    const langContent = content[language] || content.russian;
+    return langContent[reportType] || langContent.general;
 }
 
 function generateSampleChart(reportType: string, language: string): any {
@@ -928,13 +965,13 @@ function generateSampleChart(reportType: string, language: string): any {
 
 // Функция для получения заключения на нужном языке
 function getConclusion(language: string): string {
-    const conclusions = {
+    const conclusions: Record<string, string> = {
         russian: 'Заключение:\n\nДанный отчёт был автоматически сгенерирован на основе ваших требований. Для получения более детальной информации обратитесь к специалистам.',
         english: 'Conclusion:\n\nThis report was automatically generated based on your requirements. For more detailed information, please contact our specialists.',
         arabic: 'الخلاصة:\n\nتم إنشاء هذا التقرير تلقائيًا بناءً على متطلباتكم. للحصول على معلومات أكثر تفصيلاً، يرجى الاتصال بالمختصين.'
     };
 
-    return conclusions[language as keyof typeof conclusions] || conclusions.russian;
+    return conclusions[language] || conclusions.russian;
 }
 
 export default router;

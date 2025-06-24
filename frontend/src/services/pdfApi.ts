@@ -1,9 +1,13 @@
 // API сервис для работы с PDF генератором
+import type { SupportedLanguage } from '../config/languages';
+
 export interface PDFGenerationRequest {
     reportType: string;
     title: string;
     description?: string;
     sections?: any[];
+    language?: SupportedLanguage;
+    actualReportType?: string;
 }
 
 export interface PDFGenerationResponse {
@@ -13,8 +17,10 @@ export interface PDFGenerationResponse {
     error?: string;
 }
 
+type InternalLanguage = 'russian' | 'english' | 'arabic';
+
 class PDFApiService {
-    private readonly baseUrl: string; // Исправлено: добавлено readonly
+    private readonly baseUrl: string;
 
     constructor() {
         // URL вашего PDF генератора (порт 3001)
@@ -44,7 +50,7 @@ class PDFApiService {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => null);
                 const errorMessage = errorData?.message || `HTTP error! status: ${response.status}`;
-                return { // Исправлено: возвращаем ошибку вместо throw
+                return {
                     success: false,
                     error: errorMessage
                 };
@@ -79,30 +85,44 @@ class PDFApiService {
     }
 
     private createDSLFromRequest(request: PDFGenerationRequest): any {
-        const language = this.detectLanguage(request.description || request.title);
+        // Преобразуем SupportedLanguage в InternalLanguage
+        const convertLanguage = (lang?: SupportedLanguage): InternalLanguage => {
+            if (!lang) return this.detectLanguage(request.description || request.title);
+
+            switch (lang) {
+                case 'ru': return 'russian';
+                case 'en': return 'english';
+                case 'ar': return 'arabic';
+                default: return 'english';
+            }
+        };
+
+        const language = convertLanguage(request.language);
+        const reportType = request.actualReportType || request.reportType;
         const isRTL = language === 'arabic';
 
         console.log('🌐 Определён язык:', language, 'для текста:', request.description);
+        console.log('📄 Используем тип отчёта:', reportType);
 
         const dsl = {
             template: 'default',
-            defaultFont: 'DejaVuSans', // Используем DejaVuSans как в рабочем тесте
+            defaultFont: 'DejaVuSans',
             defaultDirection: isRTL ? 'rtl' : 'ltr',
             pages: [
                 {
                     elements: [
                         // Заголовок отчёта
-                        this.createTextElement(request.title, { x: 50, y: 100 }, { // Позиции как в рабочем тесте
+                        this.createTextElement(request.title, { x: 50, y: 100 }, {
                             fontSize: 24,
                             color: '#2C3E50',
-                            width: 495, // Ширина как в рабочем тесте
+                            width: 495,
                             align: 'center'
                         }, language),
 
                         // Описание
                         this.createTextElement(
                             request.description || this.getDefaultDescription(language),
-                            { x: 50, y: 170 }, // Позиции как в рабочем тесте
+                            { x: 50, y: 170 },
                             {
                                 fontSize: 12,
                                 color: '#34495E',
@@ -114,7 +134,7 @@ class PDFApiService {
 
                         // Основной контент
                         this.createTextElement(
-                            this.generateMainContent(request.reportType, language),
+                            this.generateMainContent(reportType, language),
                             { x: 50, y: 220 },
                             {
                                 fontSize: 11,
@@ -126,7 +146,7 @@ class PDFApiService {
                         ),
 
                         // Пример графика с поддержкой RTL
-                        this.createChartElement(request.reportType, language, { x: 50, y: 430 }),
+                        this.createChartElement(reportType, language, { x: 50, y: 430 }),
 
                         // Заключение
                         this.createTextElement(
@@ -143,7 +163,7 @@ class PDFApiService {
                     ],
                     style: {
                         size: 'a4',
-                        margin: { top: 70, bottom: 70, left: 50, right: 50 } // Как в рабочем тесте
+                        margin: { top: 70, bottom: 70, left: 50, right: 50 }
                     }
                 }
             ]
@@ -154,7 +174,7 @@ class PDFApiService {
     }
 
     // Новый метод для создания текстового элемента с гарантированными шрифтами
-    private createTextElement(content: string, position: {x: number, y: number}, style: any, language: 'russian' | 'english' | 'arabic') {
+    private createTextElement(content: string, position: {x: number, y: number}, style: any, language: InternalLanguage) {
         const isRTL = language === 'arabic';
 
         return {
@@ -171,7 +191,7 @@ class PDFApiService {
     }
 
     // Новый метод для создания графика с поддержкой RTL
-    private createChartElement(reportType: string, language: 'russian' | 'english' | 'arabic', position: {x: number, y: number}) {
+    private createChartElement(reportType: string, language: InternalLanguage, position: {x: number, y: number}) {
         const chartData = this.generateSampleChart(reportType, language);
         const isRTL = language === 'arabic';
 
@@ -195,7 +215,7 @@ class PDFApiService {
             content: chartData,
             position: position,
             style: {
-                width: 495, // Как в рабочем тесте
+                width: 495,
                 height: 250,
                 backgroundColor: '#FFFFFF',
                 borderColor: '#BDC3C7',
@@ -205,7 +225,7 @@ class PDFApiService {
     }
 
     // Определение правильного шрифта для языка и контента (основано на рабочем тесте)
-    private getFontForLanguage(language: 'russian' | 'english' | 'arabic', content: string = ''): string {
+    private getFontForLanguage(language: InternalLanguage, content: string = ''): string {
         // Проверяем содержимое на наличие арабских символов
         const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(content);
 
@@ -235,7 +255,6 @@ class PDFApiService {
                 if (element.type === 'text' && element.content) {
                     const content = String(element.content);
                     const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(content);
-                    // Исправлено: убрана неиспользуемая переменная hasRussian
 
                     // Инициализируем style если его нет
                     if (!element.style) {
@@ -272,7 +291,7 @@ class PDFApiService {
 
                         chart.options.rtl = hasArabic;
                         chart.options.font = {
-                            family: 'DejaVuSans' // Используем DejaVuSans как в рабочем тесте
+                            family: 'DejaVuSans'
                         };
 
                         // Добавляем textDirection как в рабочем тесте
@@ -317,7 +336,7 @@ class PDFApiService {
         return dsl;
     }
 
-    private getDefaultDescription(language: 'russian' | 'english' | 'arabic'): string {
+    private getDefaultDescription(language: InternalLanguage): string {
         const descriptions = {
             russian: 'Описание отчёта',
             english: 'Report description',
@@ -326,7 +345,7 @@ class PDFApiService {
         return descriptions[language];
     }
 
-    private detectLanguage(text: string): 'russian' | 'english' | 'arabic' {
+    private detectLanguage(text: string): InternalLanguage {
         if (!text) return 'english';
 
         // Проверка на арабский
@@ -342,7 +361,7 @@ class PDFApiService {
         return 'english';
     }
 
-    private generateConclusion(language: 'russian' | 'english' | 'arabic'): string {
+    private generateConclusion(language: InternalLanguage): string {
         const conclusions = {
             russian: 'Заключение:\n\nДанный отчёт был автоматически сгенерирован на основе ваших требований. Для получения более детальной информации обратитесь к специалистам.',
             english: 'Conclusion:\n\nThis report was automatically generated based on your requirements. For more detailed information, please contact our specialists.',
@@ -352,7 +371,7 @@ class PDFApiService {
         return conclusions[language];
     }
 
-    private generateMainContent(reportType: string, language: 'russian' | 'english' | 'arabic' = 'russian'): string {
+    private generateMainContent(reportType: string, language: InternalLanguage = 'russian'): string {
         const contentMap = {
             russian: {
                 marketing: `АНАЛИТИЧЕСКИЙ ОТЧЁТ ПО МАРКЕТИНГУ
@@ -620,7 +639,7 @@ class PDFApiService {
         return contentMap[language][cleanReportType] || contentMap[language].general;
     }
 
-    private generateSampleChart(reportType: string, language: 'russian' | 'english' | 'arabic' = 'russian'): any {
+    private generateSampleChart(reportType: string, language: InternalLanguage = 'russian'): any {
         const charts = {
             marketing: {
                 type: 'bar',
