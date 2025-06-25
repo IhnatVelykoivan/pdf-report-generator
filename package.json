@@ -1,0 +1,42 @@
+{
+  "name": "pdf-report-generator",
+  "version": "0.1.0",
+  "description": "PDF Report Generation System with LLM integration",
+  "private": true,
+  "workspaces": [
+    "dsl",
+    "pdf-renderer",
+    "frontend",
+    "feedback-loop",
+    "shared"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces",
+    "build": "npm run build --workspaces",
+    "start": "npm run start --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "keywords": [
+    "pdf",
+    "report",
+    "generator",
+    "llm",
+    "dsl"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/pdfkit": "^0.13.9",
+    "@types/pdfmake": "^0.2.11",
+    "ajv-formats": "^3.0.1",
+    "fs-extra": "^11.3.0",
+    "noto-sans-arabic": "^1.0.2",
+    "pdfkit": "^0.17.1",
+    "pdfmake": "^0.2.20"
+  }
+}
