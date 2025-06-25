@@ -1,6 +1,9 @@
+// pdf-renderer/src/api/routes.ts
+
 import express from 'express';
 import { renderPDF, renderPDFToImages, healthCheck, getTemplates } from './controllers';
 import { dslAutoFixerMiddleware } from '../middleware/dslAutoFixer';
+import { reportRouter } from './reportRoutes'; // НОВЫЙ импорт
 
 const apiRouter = express.Router();
 
@@ -21,5 +24,8 @@ apiRouter.post('/render-images',
     dslAutoFixerMiddleware,  // 🔧 КРИТИЧЕСКИ ВАЖНО: Автоматически исправляет DSL перед обработкой
     renderPDFToImages
 );
+
+// НОВЫЕ роуты для генерации отчетов через единый pipeline
+apiRouter.use('/report', reportRouter);
 
 export { apiRouter };

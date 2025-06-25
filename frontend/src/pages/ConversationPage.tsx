@@ -1,15 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useConversation } from '../context/ConversationContext';
 import { useNavigate } from 'react-router-dom';
-import { pdfApiService } from '../services/pdfApi';
-import { claudeApiService, type ChatMessage } from '../services/claudeApi';
-import {
-    detectLanguage,
-    detectReportType,
-    getReportTitle,
-    getLanguageFromReportType,
-    QUICK_REPORT_TYPES,
-} from '../config/languages';
+import { simplePdfApiService } from '../services/pdfApi.ts';
+import { claudeChatService } from '../services/claudeApi';
+import { QUICK_REPORT_TYPES } from '../config/languages';
 
 const ConversationPage = () => {
     const [inputMessage, setInputMessage] = useState('');
@@ -27,8 +21,8 @@ const ConversationPage = () => {
         scrollToBottom();
     }, [state.messages]);
 
-    // Преобразование сообщений в формат для Claude API
-    const getConversationHistory = (): ChatMessage[] => {
+    // Преобразование сообщений в формат для API
+    const getConversationHistory = () => {
         return state.messages.map(msg => ({
             role: msg.role,
             content: msg.content
@@ -56,7 +50,7 @@ const ConversationPage = () => {
             const conversationHistory = getConversationHistory();
 
             // Получаем ответ от Claude
-            const aiResponse = await claudeApiService.analyzeUserRequest(
+            const aiResponse = await claudeChatService.analyzeUserRequest(
                 userMessage.content,
                 conversationHistory
             );
@@ -109,69 +103,16 @@ const ConversationPage = () => {
         dispatch({ type: 'SET_LOADING', payload: true });
 
         try {
-            let dslResult;
-
-            if (useConversation && state.messages.length > 0) {
-                // Генерируем DSL на основе разговора с Claude
-                console.log('📝 Создаём DSL из разговора через Claude...');
-
-                const conversationHistory = getConversationHistory();
-                dslResult = await claudeApiService.generateDSLFromConversation(conversationHistory);
-
-                console.log('✅ DSL создан через Claude:', dslResult);
-
-                // Показываем объяснение пользователю
-                const explanationMessage = {
-                    id: Date.now().toString(),
-                    role: 'assistant' as const,
-                    content: `📊 **Создаю структуру отчёта:**
-
-${dslResult.explanation}
-
-**Предложения для улучшения:**
-${dslResult.suggestions.map(s => `• ${s}`).join('\n')}
-
-🔄 Генерирую PDF...`,
-                    timestamp: new Date(),
-                };
-                dispatch({ type: 'ADD_MESSAGE', payload: explanationMessage });
-
-            } else {
-                // Используем базовую DSL структуру
-                console.log('📝 Используем базовую DSL структуру...');
-                const lastUserMessage = state.messages
+            // Подготавливаем запрос - отправляем только необходимые данные
+            const request = {
+                conversationHistory: useConversation ? getConversationHistory() : [],
+                userMessage: state.messages
                     .filter(m => m.role === 'user')
-                    .pop()?.content || 'Базовый отчёт';
+                    .pop()?.content
+            };
 
-                dslResult = {
-                    dsl: await pdfApiService.generateDSLFromText(lastUserMessage),
-                    explanation: 'Создан базовый отчёт',
-                    suggestions: []
-                };
-            }
-
-            dispatch({ type: 'SET_DSL', payload: dslResult.dsl });
-
-            // ИСПРАВЛЕНИЕ: Определяем язык и тип отчета для правильного заголовка
-            const lastUserMessage = state.messages
-                .filter(m => m.role === 'user')
-                .pop()?.content || '';
-
-            const userLang = detectLanguage(lastUserMessage);
-            const reportType = detectReportType(lastUserMessage);
-
-            console.log(`🎯 Определен язык: ${userLang}, тип отчета: ${reportType}`);
-
-            // Генерируем PDF с правильным заголовком
-            console.log('🔄 Отправляем запрос на генерацию PDF...');
-            const result = await pdfApiService.generatePDF({
-                reportType: reportType || 'ai-generated',
-                title: dslResult.dsl.pages?.[0]?.elements?.[0]?.content || getReportTitle(reportType || 'ai-generated', userLang),
-                description: dslResult.explanation,
-                sections: dslResult.dsl.pages || []
-            });
-
-            console.log('📊 Результат генерации:', result);
+            console.log('📤 Отправляем запрос на сервер для генерации отчета...');
+            const result = await simplePdfApiService.generateReport(request);
 
             if (result.success && result.pdfBlob) {
                 dispatch({ type: 'SET_PDF_BLOB', payload: result.pdfBlob });
@@ -182,7 +123,6 @@ ${dslResult.suggestions.map(s => `• ${s}`).join('\n')}
                     content: `✅ **PDF отчёт успешно создан!**
 
 📄 Размер: ${(result.pdfBlob.size / 1024).toFixed(1)} KB
-🎯 Тип: ${dslResult.explanation}
 
 Переходим на страницу предварительного просмотра...`,
                     timestamp: new Date(),
@@ -205,7 +145,6 @@ ${error instanceof Error ? error.message : 'Неизвестная ошибка'
 **Возможные причины:**
 - PDF генератор не запущен на порту 3001
 - Проблема с сетевым подключением  
-- Ошибка в DSL структуре
 - Проблема с Claude API
 
 **Решения:**
@@ -237,29 +176,33 @@ ${error instanceof Error ? error.message : 'Неизвестная ошибка'
 
         try {
             if (state.generatedDSL) {
-                console.log('🔄 Обрабатываем фидбек через Claude...');
+                console.log('🔄 Отправляем фидбек на сервер...');
 
-                const updatedDSL = await claudeApiService.requestFeedback(
-                    state.generatedDSL,
-                    changeRequest
-                );
+                const result = await simplePdfApiService.sendFeedback({
+                    currentDSL: state.generatedDSL,
+                    userFeedback: changeRequest
+                });
 
-                const responseMessage = {
-                    id: (Date.now() + 1).toString(),
-                    role: 'assistant' as const,
-                    content: `✅ **Изменения учтены!**
+                if (result.success) {
+                    const responseMessage = {
+                        id: (Date.now() + 1).toString(),
+                        role: 'assistant' as const,
+                        content: `✅ **Изменения учтены!**
 
-${updatedDSL.explanation}
+${result.explanation}
 
 **Обновления:**
-${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
+${result.suggestions?.map(s => `• ${s}`).join('\n')}
 
 Хотите пересоздать PDF с учётом изменений?`,
-                    timestamp: new Date(),
-                };
+                        timestamp: new Date(),
+                    };
 
-                dispatch({ type: 'ADD_MESSAGE', payload: responseMessage });
-                dispatch({ type: 'SET_DSL', payload: updatedDSL.dsl });
+                    dispatch({ type: 'ADD_MESSAGE', payload: responseMessage });
+                    dispatch({ type: 'SET_DSL', payload: result.dsl });
+                } else {
+                    throw new Error(result.error || 'Не удалось обработать фидбек');
+                }
             } else {
                 throw new Error('Нет текущей DSL структуры для изменения');
             }
@@ -281,15 +224,7 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
         }
     };
 
-    const suggestedPrompts = [
-        "Создать маркетинговый отчёт с анализом ROI за последний квартал",
-        "Подготовить финансовую сводку с прогнозами на следующий год",
-        "Аналитический отчёт по продажам с графиками динамики",
-        "Презентация результатов проекта для руководства"
-    ];
-
     const handleQuickReport = async (reportType: string, title: string) => {
-        // Защита от двойных кликов
         if (activeQuickReportType === reportType || state.isLoading) {
             console.log('⚠️ Запрос уже обрабатывается, игнорируем повторный клик');
             return;
@@ -297,80 +232,42 @@ ${updatedDSL.suggestions.map(s => `• ${s}`).join('\n')}
 
         setActiveQuickReportType(reportType);
 
-        // Определяем язык из типа отчета
-        const language = getLanguageFromReportType(reportType);
-        let reportQuery = '';
+        console.log('🎯 Создаём быстрый отчёт типа:', reportType);
 
-        if (language === 'en') {
-            reportQuery = `Create a professional ${title.replace(/[📈💰💼📊]/g, '').trim()} with detailed analytics, charts, and insights for business decision-making.
-            
-IMPORTANT: All content must be in English, including:
-- Report title
-- Section headers
-- All text content
-- Chart titles and labels
-- Conclusion`;
-        } else if (language === 'ar') {
-            reportQuery = `إنشاء ${title.replace(/[📈💰💼📊]/g, '').trim()} احترافي مع تحليل مفصل ورسوم بيانية ورؤى لاتخاذ القرارات التجارية.
-
-مهم: يجب أن يكون كل المحتوى باللغة العربية، بما في ذلك:
-- عنوان التقرير
-- عناوين الأقسام
-- جميع النصوص
-- عناوين وتسميات الرسوم البيانية
-- الخلاصة`;
-        } else {
-            reportQuery = `Создать профессиональный ${title.replace(/[📈💰💼📊]/g, '').trim().toLowerCase()} с подробной аналитикой, графиками и инсайтами для принятия бизнес-решений.
-
-ВАЖНО: Весь контент должен быть на русском языке, включая:
-- Заголовок отчета
-- Заголовки разделов
-- Весь текстовый контент
-- Заголовки и подписи графиков
-- Заключение`;
-        }
-
-        // Добавляем явное указание языка
-        reportQuery += `\n\nLanguage for this report: ${language === 'en' ? 'English' : language === 'ar' ? 'Arabic' : 'Russian'}`;
-
-        console.log('🎯 Создаём отчёт типа:', reportType, 'на языке:', language, 'с запросом:', reportQuery);
-
-        const userMessage = {
-            id: Date.now().toString(),
-            role: 'user' as const,
-            content: reportQuery,
-            timestamp: new Date(),
-        };
-
-        dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
+        // Отправляем тип отчета на сервер, он сам определит язык и создаст нужный контент
         dispatch({ type: 'SET_LOADING', payload: true });
 
         try {
-            console.log('🤖 Отправляем запрос в Claude API...');
+            const result = await simplePdfApiService.generateReport({
+                quickReportType: reportType
+            });
 
-            const conversationHistory = getConversationHistory();
-            const aiResponse = await claudeApiService.analyzeUserRequest(
-                reportQuery,
-                conversationHistory
-            );
+            if (result.success && result.pdfBlob) {
+                dispatch({ type: 'SET_PDF_BLOB', payload: result.pdfBlob });
 
-            const aiMessage = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant' as const,
-                content: aiResponse,
-                timestamp: new Date(),
-            };
+                const successMessage = {
+                    id: Date.now().toString(),
+                    role: 'assistant' as const,
+                    content: `✅ **${title} успешно создан!**
 
-            dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
-            console.log('✅ Получен ответ от Claude');
+📄 Размер: ${(result.pdfBlob.size / 1024).toFixed(1)} KB
 
+Переходим на страницу предварительного просмотра...`,
+                    timestamp: new Date(),
+                };
+                dispatch({ type: 'ADD_MESSAGE', payload: successMessage });
+
+                setTimeout(() => navigate('/preview'), 1500);
+            } else {
+                throw new Error(result.error || 'Ошибка генерации отчета');
+            }
         } catch (error) {
-            console.error('❌ Ошибка Claude API:', error);
+            console.error('❌ Ошибка создания быстрого отчета:', error);
 
             const errorMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant' as const,
-                content: `❌ Извините, произошла ошибка при обращении к ИИ: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+                content: `❌ Не удалось создать отчет: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
                 timestamp: new Date(),
             };
 
@@ -380,6 +277,13 @@ IMPORTANT: All content must be in English, including:
             setActiveQuickReportType(null);
         }
     };
+
+    const suggestedPrompts = [
+        "Создать маркетинговый отчёт с анализом ROI за последний квартал",
+        "Подготовить финансовую сводку с прогнозами на следующий год",
+        "Аналитический отчёт по продажам с графиками динамики",
+        "Презентация результатов проекта для руководства"
+    ];
 
     return (
         <div className="chat-container">
