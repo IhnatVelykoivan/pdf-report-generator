@@ -7,42 +7,43 @@ const HomePage = () => {
     // Переводы для главной страницы
     const translations = {
         ru: {
-            title: 'PDF Report Generator',
-            subtitle: 'Создавайте профессиональные PDF отчёты с помощью ИИ. Просто опишите, что нужно, и получите готовый документ.',
-            feature1Title: 'ИИ Генерация',
-            feature1Desc: 'Умный помощник создаст структуру отчёта на основе ваших требований',
-            feature2Title: 'Гибкие Шаблоны',
-            feature2Desc: 'Поддержка различных типов отчётов: аналитика, презентации, документы',
-            feature3Title: 'Быстрое Создание',
-            feature3Desc: 'От идеи до готового PDF за несколько минут',
-            ctaButton: 'Начать создание отчёта',
-            ctaSubtext: 'Бесплатно • Без регистрации • Готов за минуты'
+            title: 'От слов — к делу.',
+            subtitle: 'ИИ подготовит точный и понятный PDF-отчёт за считаные секунды.',
+            feature1Title: 'Умный помощник',
+            feature1Desc: 'ИИ сам предложит структуру и содержание — вам остаётся только подставить данные.',
+            feature2Title: 'Гибкие шаблоны',
+            feature2Desc: 'Маркетинг, продажи, финансы, аналитика — выбирайте готовое или создавайте своё.',
+            feature3Title: 'Быстрый результат',
+            feature3Desc: 'Полноценный отчёт — без дизайнеров, вёрстки и шаблонов.',
+            ctaButton: 'Создать отчёт',
+            ctaSubtext: '• Готов за минуты • На любом языке'
         },
         en: {
-            title: 'PDF Report Generator',
-            subtitle: 'Create professional PDF reports using AI. Just describe what you need and get a ready document.',
-            feature1Title: 'AI Generation',
-            feature1Desc: 'Smart assistant will create report structure based on your requirements',
+            title: 'From prompt to PDF.',
+            subtitle: 'AI turns your input into a clear, professional report in seconds.',
+            feature1Title: 'Smart Assistant',
+            feature1Desc: 'Describe your needs — the AI builds a full report structure instantly.',
             feature2Title: 'Flexible Templates',
-            feature2Desc: 'Support for various report types: analytics, presentations, documents',
-            feature3Title: 'Fast Creation',
-            feature3Desc: 'From idea to ready PDF in minutes',
-            ctaButton: 'Start Creating Report',
-            ctaSubtext: 'Free • No Registration • Ready in Minutes'
+            feature2Desc: 'Marketing, Sales, Finance, Analytics — use ready templates or build your own.',
+            feature3Title: 'Fast Results',
+            feature3Desc: 'Professional reports without designers or manual formatting.',
+            ctaButton: 'Create Report',
+            ctaSubtext: '• Ready in minutes • Multilingual'
         },
         ar: {
-            title: 'مولد تقارير PDF',
-            subtitle: 'قم بإنشاء تقارير PDF احترافية باستخدام الذكاء الاصطناعي. فقط صف ما تحتاجه واحصل على مستند جاهز.',
-            feature1Title: 'توليد بالذكاء الاصطناعي',
-            feature1Desc: 'سيقوم المساعد الذكي بإنشاء هيكل التقرير بناءً على متطلباتك',
+            title: 'من الكلمات إلى التقرير.',
+            subtitle: 'الذكاء الاصطناعي يُعد لك تقريرًا احترافيًا وواضحًا خلال ثوانٍ.',
+            feature1Title: 'مساعد ذكي',
+            feature1Desc: 'صف ما تحتاجه، وسيتولى الذكاء الاصطناعي بناء التقرير بالكامل.',
             feature2Title: 'قوالب مرنة',
-            feature2Desc: 'دعم أنواع مختلفة من التقارير: التحليلات والعروض التقديمية والمستندات',
-            feature3Title: 'إنشاء سريع',
-            feature3Desc: 'من الفكرة إلى PDF جاهز في دقائق',
-            ctaButton: 'ابدأ إنشاء التقرير',
-            ctaSubtext: 'مجاني • بدون تسجيل • جاهز في دقائق'
+            feature2Desc: 'التسويق، المبيعات، المالي، التحليلات — استخدم القوالب أو أنشئ بنفسك.',
+            feature3Title: 'نتائج سريعة',
+            feature3Desc: 'تقارير جاهزة دون تصميم أو تنسيق يدوي.',
+            ctaButton: 'إنشاء التقرير',
+            ctaSubtext: 'بدون تسجيل • جاهز خلال دقائق •'
         }
     };
+
 
     const t = translations[language];
 
