@@ -11,8 +11,12 @@ export const QUICK_REPORT_TYPES = [
     { type: 'analytics', lang: 'ru' as SupportedLanguage, title: '📊 Аналитика', description: 'Глубокий анализ данных и трендов' },
     { type: 'marketing-en', lang: 'en' as SupportedLanguage, title: '📈 Marketing Report', description: 'Campaign analysis and ROI metrics' },
     { type: 'sales-en', lang: 'en' as SupportedLanguage, title: '💰 Sales Report', description: 'Sales dynamics and forecasts' },
+    { type: 'financial-en', lang: 'en' as SupportedLanguage, title: '💼 Financial Report', description: 'Budget, expenses and profitability' },
+    { type: 'analytics-en', lang: 'en' as SupportedLanguage, title: '📊 Analytics Report', description: 'Deep data analysis and trends' },
     { type: 'marketing-ar', lang: 'ar' as SupportedLanguage, title: '📈 تقرير التسويق', description: 'تحليل الحملات والعائد على الاستثمار' },
-    { type: 'financial-ar', lang: 'ar' as SupportedLanguage, title: '💼 التقرير المالي', description: 'الميزانية والمصروفات والربحية' }
+    { type: 'sales-ar', lang: 'ar' as SupportedLanguage, title: '💰 تقرير المبيعات', description: 'ديناميكيات المبيعات والتوقعات' },
+    { type: 'financial-ar', lang: 'ar' as SupportedLanguage, title: '💼 التقرير المالي', description: 'الميزانية والمصروفات والربحية' },
+    { type: 'analytics-ar', lang: 'ar' as SupportedLanguage, title: '📊 تقرير التحليلات', description: 'تحليل عميق للبيانات والاتجاهات' }
 ];
 
 // Все остальные функции (detectLanguage, getReportTitle и т.д.) удалены

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { simplePdfApiService } from '../services/pdfApi.ts';
 import { claudeChatService } from '../services/claudeApi';
 import { QUICK_REPORT_TYPES } from '../config/languages';
+import { useLanguage } from '../components/Layout';
 
 const ConversationPage = () => {
     const [inputMessage, setInputMessage] = useState('');
@@ -12,6 +13,66 @@ const ConversationPage = () => {
     const { state, dispatch } = useConversation();
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const { language } = useLanguage();
+
+    // Переводы интерфейса для разных языков
+    const translations = {
+        ru: {
+            title: 'ИИ Помощник Claude',
+            subtitle: 'Опишите, какой отчёт вам нужен, и я создам его с помощью искусственного интеллекта',
+            welcome: 'Привет! Я Claude, ваш ИИ-помощник по созданию PDF отчётов',
+            description: 'Просто опишите, что вам нужно, и я создам профессиональный отчёт с учётом всех ваших требований',
+            quickReportsTitle: 'Быстрое создание отчётов',
+            inputPlaceholder: 'Опишите, какой отчёт вам нужен...',
+            sendButton: 'Отправить',
+            createPdfButton: 'Создать PDF',
+            requestChangesButton: 'Внести изменения',
+            moreDetailsButton: 'Уточнить детали'
+        },
+        en: {
+            title: 'AI Assistant Claude',
+            subtitle: 'Describe what report you need, and I will create it using artificial intelligence',
+            welcome: 'Hello! I\'m Claude, your AI assistant for creating PDF reports',
+            description: 'Just describe what you need, and I\'ll create a professional report tailored to your requirements',
+            quickReportsTitle: 'Quick Report Creation',
+            inputPlaceholder: 'Describe what report you need...',
+            sendButton: 'Send',
+            createPdfButton: 'Create PDF',
+            requestChangesButton: 'Request Changes',
+            moreDetailsButton: 'More Details'
+        },
+        ar: {
+            title: 'مساعد الذكاء الاصطناعي Claude',
+            subtitle: 'صف التقرير الذي تحتاجه، وسأقوم بإنشائه باستخدام الذكاء الاصطناعي',
+            welcome: 'مرحبا! أنا Claude، مساعدك الذكي لإنشاء تقارير PDF',
+            description: 'فقط صف ما تحتاجه، وسأقوم بإنشاء تقرير احترافي وفقًا لمتطلباتك',
+            quickReportsTitle: 'إنشاء سريع للتقارير',
+            inputPlaceholder: 'صف التقرير الذي تحتاجه...',
+            sendButton: 'إرسال',
+            createPdfButton: 'إنشاء PDF',
+            requestChangesButton: 'طلب تغييرات',
+            moreDetailsButton: 'المزيد من التفاصيل'
+        }
+    };
+
+    const t = translations[language];
+
+    // Иконки для типов отчётов
+    const reportIcons: Record<string, string> = {
+        marketing: '📈',
+        sales: '💰',
+        financial: '💼',
+        analytics: '📊'
+    };
+
+    // Фильтруем отчёты по выбранному языку
+    const getQuickReportsForLanguage = () => {
+        return QUICK_REPORT_TYPES.filter(report => {
+            if (language === 'en') return report.type.endsWith('-en');
+            if (language === 'ar') return report.type.endsWith('-ar');
+            return report.lang === 'ru' && !report.type.includes('-');
+        });
+    };
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -278,39 +339,45 @@ ${result.suggestions?.map(s => `• ${s}`).join('\n')}
         }
     };
 
-    const suggestedPrompts = [
-        "Создать маркетинговый отчёт с анализом ROI за последний квартал",
-        "Подготовить финансовую сводку с прогнозами на следующий год",
-        "Аналитический отчёт по продажам с графиками динамики",
-        "Презентация результатов проекта для руководства"
-    ];
-
     return (
         <div className="chat-container">
             <div className="chat-header">
-                <h1>🤖 ИИ Помощник Claude</h1>
-                <p>Опишите, какой отчёт вам нужен, и я создам его с помощью искусственного интеллекта</p>
+                <h1>🤖 {t.title}</h1>
+                <p>{t.subtitle}</p>
             </div>
 
             <div className="chat-messages">
                 {state.messages.length === 0 ? (
                     <div className="welcome-section">
                         <div className="welcome-message">
-                            <h2>👋 Привет! Я Claude, ваш ИИ-помощник по созданию PDF отчётов</h2>
-                            <p>Просто опишите, что вам нужно, и я создам профессиональный отчёт с учётом всех ваших требований</p>
+                            <h2>👋 {t.welcome}</h2>
+                            <p>{t.description}</p>
 
-                            <div className="suggested-prompts">
-                                <h3>💡 Примеры запросов:</h3>
-                                {suggestedPrompts.map((prompt, index) => (
-                                    <button
-                                        key={index}
-                                        className="prompt-button"
-                                        onClick={() => setInputMessage(prompt)}
-                                        disabled={state.isLoading}
-                                    >
-                                        {prompt}
-                                    </button>
-                                ))}
+                            <div className="quick-reports-section">
+                                <h3>{t.quickReportsTitle}</h3>
+                                <div className="quick-report-cards">
+                                    {getQuickReportsForLanguage().map((report) => {
+                                        const cleanType = report.type.replace(/-en$|-ar$/, '');
+                                        const icon = reportIcons[cleanType] || '📄';
+
+                                        return (
+                                            <div
+                                                key={report.type}
+                                                className={`quick-report-card ${activeQuickReportType === report.type ? 'loading' : ''}`}
+                                                onClick={() => handleQuickReport(report.type, report.title)}
+                                            >
+                                                <div className="card-icon">{icon}</div>
+                                                <h4 className="card-title">{report.title.replace(icon, '').trim()}</h4>
+                                                <p className="card-description">{report.description}</p>
+                                                {activeQuickReportType === report.type && (
+                                                    <div className="card-loading">
+                                                        <div className="loading-spinner-small"></div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -335,7 +402,7 @@ ${result.suggestions?.map(s => `• ${s}`).join('\n')}
                                                 onClick={() => handleGeneratePDF(true)}
                                                 disabled={isGeneratingPDF}
                                             >
-                                                {isGeneratingPDF ? '⏳ Создаю...' : '📄 Создать PDF'}
+                                                {isGeneratingPDF ? '⏳ ...' : `📄 ${t.createPdfButton}`}
                                             </button>
                                             {state.generatedDSL && (
                                                 <button
@@ -343,15 +410,19 @@ ${result.suggestions?.map(s => `• ${s}`).join('\n')}
                                                     onClick={handleRequestChanges}
                                                     disabled={state.isLoading}
                                                 >
-                                                    ✏️ Внести изменения
+                                                    ✏️ {t.requestChangesButton}
                                                 </button>
                                             )}
                                             <button
                                                 className="action-button secondary"
-                                                onClick={() => setInputMessage('Расскажи подробнее о структуре отчёта')}
+                                                onClick={() => setInputMessage(language === 'ru' ?
+                                                    'Расскажи подробнее о структуре отчёта' :
+                                                    language === 'en' ?
+                                                        'Tell me more about the report structure' :
+                                                        'أخبرني المزيد عن هيكل التقرير')}
                                                 disabled={state.isLoading}
                                             >
-                                                ❓ Уточнить детали
+                                                ❓ {t.moreDetailsButton}
                                             </button>
                                         </div>
                                     )}
@@ -378,9 +449,9 @@ ${result.suggestions?.map(s => `• ${s}`).join('\n')}
                         {/* Быстрые кнопки для создания отчётов */}
                         {state.messages.length > 0 && !state.isLoading && (
                             <div className="quick-reports">
-                                <h3>⚡ Быстрое создание отчётов:</h3>
+                                <h3>⚡ {t.quickReportsTitle}:</h3>
                                 <div className="quick-reports-grid">
-                                    {QUICK_REPORT_TYPES.map((report) => (
+                                    {getQuickReportsForLanguage().map((report) => (
                                         <button
                                             key={report.type}
                                             className="quick-report-btn"
@@ -412,7 +483,7 @@ ${result.suggestions?.map(s => `• ${s}`).join('\n')}
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Опишите, какой отчёт вам нужен..."
+                        placeholder={t.inputPlaceholder}
                         className="message-input"
                         rows={3}
                         disabled={state.isLoading}
