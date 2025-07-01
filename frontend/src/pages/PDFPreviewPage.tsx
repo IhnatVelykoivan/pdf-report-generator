@@ -1,11 +1,76 @@
 import { useEffect, useState } from 'react';
 import { useConversation } from '../context/ConversationContext';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../components/Layout';
 
 const PDFPreviewPage = () => {
     const { state } = useConversation();
     const navigate = useNavigate();
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+    const { language } = useLanguage();
+
+    // Переводы для страницы предпросмотра
+    const translations = {
+        ru: {
+            noReports: 'Нет созданных отчётов',
+            startCreating: 'Начните с создания отчёта в чате с ИИ помощником',
+            createReport: 'Создать отчёт',
+            previewTitle: 'Предварительный просмотр PDF',
+            previewSubtitle: 'Ваш отчёт готов для просмотра и скачивания',
+            createNew: 'Создать новый',
+            downloadPdf: 'Скачать PDF',
+            generating: 'Генерируем PDF...',
+            error: 'Ошибка при создании PDF',
+            tryAgain: 'Попробовать снова',
+            fileSize: 'Размер файла:',
+            created: 'Создан:',
+            fileType: 'Тип:',
+            pdfNotCreated: 'PDF ещё не создан',
+            returnToChat: 'Вернитесь в чат и нажмите кнопку "Создать PDF" для генерации отчёта',
+            backToChat: 'Вернуться в чат',
+            dslStructure: 'DSL Structure (Debug)'
+        },
+        en: {
+            noReports: 'No reports created',
+            startCreating: 'Start by creating a report in the AI assistant chat',
+            createReport: 'Create Report',
+            previewTitle: 'PDF Preview',
+            previewSubtitle: 'Your report is ready for preview and download',
+            createNew: 'Create New',
+            downloadPdf: 'Download PDF',
+            generating: 'Generating PDF...',
+            error: 'Error creating PDF',
+            tryAgain: 'Try Again',
+            fileSize: 'File Size:',
+            created: 'Created:',
+            fileType: 'Type:',
+            pdfNotCreated: 'PDF not created yet',
+            returnToChat: 'Return to chat and click "Create PDF" to generate the report',
+            backToChat: 'Back to Chat',
+            dslStructure: 'DSL Structure (Debug)'
+        },
+        ar: {
+            noReports: 'لا توجد تقارير',
+            startCreating: 'ابدأ بإنشاء تقرير في محادثة مساعد الذكاء الاصطناعي',
+            createReport: 'إنشاء تقرير',
+            previewTitle: 'معاينة PDF',
+            previewSubtitle: 'تقريرك جاهز للمعاينة والتنزيل',
+            createNew: 'إنشاء جديد',
+            downloadPdf: 'تحميل PDF',
+            generating: 'جاري إنشاء PDF...',
+            error: 'خطأ في إنشاء PDF',
+            tryAgain: 'حاول مرة أخرى',
+            fileSize: 'حجم الملف:',
+            created: 'تم الإنشاء:',
+            fileType: 'النوع:',
+            pdfNotCreated: 'لم يتم إنشاء PDF بعد',
+            returnToChat: 'ارجع إلى المحادثة واضغط على "إنشاء PDF" لإنشاء التقرير',
+            backToChat: 'العودة إلى المحادثة',
+            dslStructure: 'هيكل DSL (تصحيح)'
+        }
+    };
+
+    const t = translations[language];
 
     useEffect(() => {
         // Если есть готовый PDF blob в состоянии
@@ -21,7 +86,8 @@ const PDFPreviewPage = () => {
             const url = URL.createObjectURL(state.pdfBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `report-${new Date().toISOString().slice(0, 10)}.pdf`;
+            const reportName = language === 'en' ? 'report' : language === 'ar' ? 'تقرير' : 'отчет';
+            link.download = `${reportName}-${new Date().toISOString().slice(0, 10)}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -40,10 +106,10 @@ const PDFPreviewPage = () => {
                 <div className="preview-empty">
                     <div className="empty-state">
                         <div className="empty-icon">📄</div>
-                        <h2>Нет созданных отчётов</h2>
-                        <p>Начните с создания отчёта в чате с ИИ помощником</p>
+                        <h2>{t.noReports}</h2>
+                        <p>{t.startCreating}</p>
                         <button className="create-report-btn" onClick={handleCreateNew}>
-                            💬 Создать отчёт
+                            💬 {t.createReport}
                         </button>
                     </div>
                 </div>
@@ -55,8 +121,8 @@ const PDFPreviewPage = () => {
         <div className="preview-container">
             <div className="preview-header">
                 <div className="preview-title">
-                    <h1>📄 Предварительный просмотр PDF</h1>
-                    <p>Ваш отчёт готов для просмотра и скачивания</p>
+                    <h1>📄 {t.previewTitle}</h1>
+                    <p>{t.previewSubtitle}</p>
                 </div>
 
                 <div className="preview-actions">
@@ -64,14 +130,14 @@ const PDFPreviewPage = () => {
                         className="action-btn secondary"
                         onClick={handleCreateNew}
                     >
-                        ✨ Создать новый
+                        ✨ {t.createNew}
                     </button>
                     <button
                         className="action-btn primary"
                         onClick={handleDownload}
                         disabled={!state.pdfBlob}
                     >
-                        💾 Скачать PDF
+                        💾 {t.downloadPdf}
                     </button>
                 </div>
             </div>
@@ -80,17 +146,17 @@ const PDFPreviewPage = () => {
                 {state.isLoading && (
                     <div className="preview-loading">
                         <div className="loading-spinner"></div>
-                        <p>Генерируем PDF...</p>
+                        <p>{t.generating}</p>
                     </div>
                 )}
 
                 {state.error && (
                     <div className="preview-error">
                         <div className="error-icon">❌</div>
-                        <h3>Ошибка при создании PDF</h3>
+                        <h3>{t.error}</h3>
                         <p>{state.error}</p>
                         <button className="retry-btn" onClick={handleCreateNew}>
-                            🔄 Попробовать снова
+                            🔄 {t.tryAgain}
                         </button>
                     </div>
                 )}
@@ -109,19 +175,19 @@ const PDFPreviewPage = () => {
 
                         <div className="pdf-info">
                             <div className="info-item">
-                                <span className="info-label">📊 Размер файла:</span>
+                                <span className="info-label">📊 {t.fileSize}</span>
                                 <span className="info-value">
-                  {(state.pdfBlob.size / 1024).toFixed(1)} KB
-                </span>
+                                    {(state.pdfBlob.size / 1024).toFixed(1)} KB
+                                </span>
                             </div>
                             <div className="info-item">
-                                <span className="info-label">📅 Создан:</span>
+                                <span className="info-label">📅 {t.created}</span>
                                 <span className="info-value">
-                  {new Date().toLocaleString('ru-RU')}
-                </span>
+                                    {new Date().toLocaleString(language === 'ar' ? 'ar-SA' : language === 'en' ? 'en-US' : 'ru-RU')}
+                                </span>
                             </div>
                             <div className="info-item">
-                                <span className="info-label">🔧 Тип:</span>
+                                <span className="info-label">🔧 {t.fileType}</span>
                                 <span className="info-value">PDF Document</span>
                             </div>
                         </div>
@@ -132,10 +198,10 @@ const PDFPreviewPage = () => {
                     <div className="preview-placeholder">
                         <div className="placeholder-content">
                             <div className="placeholder-icon">⏳</div>
-                            <h3>PDF ещё не создан</h3>
-                            <p>Вернитесь в чат и нажмите кнопку "Создать PDF" для генерации отчёта</p>
+                            <h3>{t.pdfNotCreated}</h3>
+                            <p>{t.returnToChat}</p>
                             <button className="back-to-chat-btn" onClick={handleCreateNew}>
-                                💬 Вернуться в чат
+                                💬 {t.backToChat}
                             </button>
                         </div>
                     </div>
@@ -146,7 +212,7 @@ const PDFPreviewPage = () => {
             {state.generatedDSL && process.env.NODE_ENV === 'development' && (
                 <div className="debug-info">
                     <details>
-                        <summary>🔧 DSL Structure (Debug)</summary>
+                        <summary>🔧 {t.dslStructure}</summary>
                         <pre>{JSON.stringify(state.generatedDSL, null, 2)}</pre>
                     </details>
                 </div>
