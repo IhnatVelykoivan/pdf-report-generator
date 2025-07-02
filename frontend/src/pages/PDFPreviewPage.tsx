@@ -1,12 +1,16 @@
+// frontend/src/pages/PDFPreviewPage.tsx
+
 import { useEffect, useState } from 'react';
 import { useConversation } from '../context/ConversationContext';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../components/Layout';
+import MobilePDFViewer from '../components/MobilePDFViewer';
 
 const PDFPreviewPage = () => {
     const { state } = useConversation();
     const navigate = useNavigate();
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
     const { language } = useLanguage();
 
     // Переводы для страницы предпросмотра
@@ -73,6 +77,20 @@ const PDFPreviewPage = () => {
     const t = translations[language];
 
     useEffect(() => {
+        // Определяем, мобильное ли устройство
+        const checkMobile = () => {
+            const width = window.innerWidth;
+            const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            setIsMobile(width <= 768 || isMobileDevice);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    useEffect(() => {
         // Если есть готовый PDF blob в состоянии
         if (state.pdfBlob) {
             const url = URL.createObjectURL(state.pdfBlob);
@@ -132,13 +150,15 @@ const PDFPreviewPage = () => {
                     >
                         ✨ {t.createNew}
                     </button>
-                    <button
-                        className="action-btn primary"
-                        onClick={handleDownload}
-                        disabled={!state.pdfBlob}
-                    >
-                        💾 {t.downloadPdf}
-                    </button>
+                    {!isMobile && (
+                        <button
+                            className="action-btn primary"
+                            onClick={handleDownload}
+                            disabled={!state.pdfBlob}
+                        >
+                            💾 {t.downloadPdf}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -161,37 +181,51 @@ const PDFPreviewPage = () => {
                     </div>
                 )}
 
-                {state.pdfBlob && pdfUrl && (
-                    <div className="pdf-viewer">
-                        <div className="pdf-frame">
-                            <iframe
-                                src={pdfUrl}
-                                width="100%"
-                                height="800px"
-                                title="PDF Preview"
-                                style={{ border: 'none' }}
+                {state.pdfBlob && (
+                    <>
+                        {isMobile ? (
+                            // Мобильная версия
+                            <MobilePDFViewer
+                                pdfBlob={state.pdfBlob}
+                                fileSize={state.pdfBlob.size}
+                                language={language}
                             />
-                        </div>
+                        ) : (
+                            // Десктопная версия с iframe
+                            <div className="pdf-viewer">
+                                <div className="pdf-frame">
+                                    {pdfUrl && (
+                                        <iframe
+                                            src={pdfUrl}
+                                            width="100%"
+                                            height="800px"
+                                            title="PDF Preview"
+                                            style={{ border: 'none' }}
+                                        />
+                                    )}
+                                </div>
 
-                        <div className="pdf-info">
-                            <div className="info-item">
-                                <span className="info-label">📊 {t.fileSize}</span>
-                                <span className="info-value">
-                                    {(state.pdfBlob.size / 1024).toFixed(1)} KB
-                                </span>
+                                <div className="pdf-info">
+                                    <div className="info-item">
+                                        <span className="info-label">📊 {t.fileSize}</span>
+                                        <span className="info-value">
+                                            {(state.pdfBlob.size / 1024).toFixed(1)} KB
+                                        </span>
+                                    </div>
+                                    <div className="info-item">
+                                        <span className="info-label">📅 {t.created}</span>
+                                        <span className="info-value">
+                                            {new Date().toLocaleString(language === 'ar' ? 'ar-SA' : language === 'en' ? 'en-US' : 'ru-RU')}
+                                        </span>
+                                    </div>
+                                    <div className="info-item">
+                                        <span className="info-label">🔧 {t.fileType}</span>
+                                        <span className="info-value">PDF Document</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="info-item">
-                                <span className="info-label">📅 {t.created}</span>
-                                <span className="info-value">
-                                    {new Date().toLocaleString(language === 'ar' ? 'ar-SA' : language === 'en' ? 'en-US' : 'ru-RU')}
-                                </span>
-                            </div>
-                            <div className="info-item">
-                                <span className="info-label">🔧 {t.fileType}</span>
-                                <span className="info-value">PDF Document</span>
-                            </div>
-                        </div>
-                    </div>
+                        )}
+                    </>
                 )}
 
                 {!state.pdfBlob && state.messages.length > 0 && (

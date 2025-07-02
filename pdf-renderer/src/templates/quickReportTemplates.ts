@@ -819,6 +819,8 @@ const ANALYTICS_TEMPLATES: Record<SupportedLanguage, ReportTemplate> = {
 
 // Главная функция получения шаблона
 export function getQuickReportTemplate(reportType: string): any {
+    console.log(`📋 getQuickReportTemplate вызван с типом: "${reportType}"`);
+
     // Извлекаем язык из типа отчета
     let language: SupportedLanguage = 'ru';
     let cleanType = reportType;
@@ -829,34 +831,52 @@ export function getQuickReportTemplate(reportType: string): any {
     } else if (reportType.endsWith('-ar')) {
         language = 'ar';
         cleanType = reportType.replace('-ar', '');
+    } else {
+        // Если нет суффикса языка, это русский отчет
+        language = 'ru';
+        cleanType = reportType;
     }
 
-    console.log(`📋 Получаем шаблон: тип=${cleanType}, язык=${language}`);
+    console.log(`📋 Определены параметры: cleanType="${cleanType}", language="${language}"`);
+
+    // Проверяем, что тип поддерживается
+    const supportedTypes = ['marketing', 'sales', 'financial', 'analytics'];
+    if (!supportedTypes.includes(cleanType)) {
+        console.error(`❌ Неподдерживаемый тип отчета: ${cleanType}`);
+        console.log(`📋 Поддерживаемые типы: ${supportedTypes.join(', ')}`);
+        return null;
+    }
 
     // Выбираем нужный шаблон
     let template: ReportTemplate | undefined;
     switch (cleanType) {
         case 'marketing':
             template = MARKETING_TEMPLATES[language];
+            console.log(`✅ Используем маркетинговый шаблон для языка ${language}`);
             break;
         case 'sales':
             template = SALES_TEMPLATES[language];
+            console.log(`✅ Используем шаблон продаж для языка ${language}`);
             break;
         case 'financial':
             template = FINANCIAL_TEMPLATES[language];
+            console.log(`✅ Используем финансовый шаблон для языка ${language}`);
             break;
         case 'analytics':
             template = ANALYTICS_TEMPLATES[language];
+            console.log(`✅ Используем аналитический шаблон для языка ${language}`);
             break;
         default:
-            console.warn(`⚠️ Неизвестный тип отчета: ${cleanType}`);
+            console.error(`❌ Неизвестный тип отчета: ${cleanType}`);
             return null;
     }
 
     if (!template) {
-        console.warn(`⚠️ Шаблон не найден для: ${cleanType}-${language}`);
+        console.error(`❌ Шаблон не найден для: ${cleanType}-${language}`);
         return null;
     }
+
+    console.log(`📋 Шаблон найден: "${template.title}"`);
 
     // Создаем DSL структуру
     const langConfig = getLanguageConfig(language);
@@ -917,7 +937,9 @@ export function getQuickReportTemplate(reportType: string): any {
 
     // Добавляем графики
     let chartY = 480;
-    template.charts.forEach((chart: ChartData) => {
+    template.charts.forEach((chart: ChartData, index: number) => {
+        console.log(`📊 Добавляем график ${index + 1}: ${chart.title}`);
+
         // Применяем правильные настройки для RTL
         if (isRTL) {
             chart.options = {
@@ -944,6 +966,6 @@ export function getQuickReportTemplate(reportType: string): any {
         chartY += 280; // Смещение для следующего графика
     });
 
-    console.log(`✅ Шаблон сгенерирован с ${template.charts.length} графиками`);
+    console.log(`✅ DSL успешно сгенерирован с ${dsl.pages[0].elements.length} элементами`);
     return dsl;
 }

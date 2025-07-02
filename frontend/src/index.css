@@ -2416,3 +2416,1325 @@ a {
     height: 500px;
   }
 }
+/* ===== УЛУЧШЕННАЯ МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
+
+/* Базовые улучшения для мобильных */
+@media (max-width: 768px) {
+  /* Общие стили */
+  body {
+    font-size: 16px; /* Предотвращаем zoom на iOS */
+  }
+
+  /* Навигация */
+  .nav-container {
+    padding: 0.5rem;
+  }
+
+  .language-selector-nav {
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+  }
+
+  .lang-button-nav {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    min-width: 44px; /* Минимальный размер для touch */
+    min-height: 44px;
+  }
+
+  /* Заголовок в навигации */
+  nav .text-lg {
+    font-size: 1rem;
+  }
+}
+
+/* ===== ГЛАВНАЯ СТРАНИЦА ===== */
+@media (max-width: 768px) {
+  .hero-section {
+    min-height: auto;
+    padding: 2rem 0;
+  }
+
+  .hero-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 0 1rem;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .hero-subtitle {
+    font-size: 1.125rem;
+    text-align: center;
+  }
+
+  .features-grid {
+    gap: 1rem;
+  }
+
+  .feature-item {
+    padding: 1rem;
+  }
+
+  .feature-icon {
+    font-size: 1.5rem;
+  }
+
+  .mock-pdf {
+    width: 200px;
+    height: 260px;
+    padding: 1.5rem;
+    margin: 0 auto;
+  }
+
+  .cta-button {
+    width: 100%;
+    max-width: 300px;
+    padding: 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.75rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .feature-item h3 {
+    font-size: 1rem;
+  }
+
+  .feature-item p {
+    font-size: 0.875rem;
+  }
+}
+
+/* ===== СТРАНИЦА ЧАТА ===== */
+@media (max-width: 768px) {
+  .chat-container {
+    height: calc(100vh - 60px);
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .chat-header {
+    padding: 1rem;
+  }
+
+  .chat-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .chat-header p {
+    font-size: 0.875rem;
+  }
+
+  .chat-messages {
+    padding: 0.5rem;
+  }
+
+  .message-content {
+    max-width: 85%;
+  }
+
+  .message-text {
+    padding: 0.75rem 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .message-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  /* Кнопки действий в сообщениях */
+  .message-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .action-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    min-height: 36px;
+  }
+}
+
+/* ===== КАРТОЧКИ БЫСТРЫХ ОТЧЕТОВ - КРИТИЧЕСКИ ВАЖНО! ===== */
+@media (max-width: 1024px) {
+  .quick-report-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .quick-report-card {
+    min-height: 160px;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .quick-reports-section {
+    margin-top: 2rem;
+  }
+
+  .quick-reports-section h3 {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+  }
+
+  .quick-report-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0 0.5rem;
+  }
+
+  .quick-report-card {
+    min-height: auto;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 1rem;
+  }
+
+  .card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .card-content {
+    flex: 1;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .card-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+
+  /* Быстрые отчеты в сообщениях */
+  .quick-reports {
+    margin-top: 1.5rem;
+    padding: 1rem;
+  }
+
+  .quick-reports h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .quick-reports-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .quick-report-btn {
+    padding: 1rem;
+    text-align: left;
+  }
+
+  .quick-report-title {
+    font-size: 0.9375rem;
+  }
+
+  .quick-report-desc {
+    font-size: 0.8125rem;
+  }
+}
+
+/* ===== ПОЛЕ ВВОДА ЧАТА ===== */
+@media (max-width: 768px) {
+  .chat-input {
+    padding: 0.75rem;
+  }
+
+  .input-container {
+    gap: 0.75rem;
+  }
+
+  .message-input {
+    padding: 0.75rem;
+    font-size: 16px; /* Предотвращаем zoom на iOS */
+    min-height: 44px;
+  }
+
+  .send-button {
+    min-width: 48px;
+    height: 48px;
+    padding: 0.75rem;
+    font-size: 1.125rem;
+  }
+}
+
+/* ===== СТРАНИЦА ПРЕДПРОСМОТРА PDF ===== */
+@media (max-width: 768px) {
+  .preview-container {
+    padding: 1rem;
+  }
+
+  .preview-header {
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .preview-title h1 {
+    font-size: 1.5rem;
+  }
+
+  .preview-title p {
+    font-size: 1rem;
+  }
+
+  .preview-actions {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    justify-content: center;
+  }
+
+  .pdf-frame iframe {
+    height: 500px;
+  }
+
+  .pdf-info {
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+
+  .info-item {
+    text-align: center;
+  }
+
+  .info-label {
+    font-size: 0.75rem;
+  }
+
+  .info-value {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdf-frame iframe {
+    height: 400px;
+  }
+
+  .preview-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+}
+
+/* ===== УЛУЧШЕНИЯ ДЛЯ RTL (арабский) ===== */
+@media (max-width: 768px) {
+  [dir="rtl"] .chat-container,
+  .rtl .chat-container {
+    direction: rtl;
+  }
+
+  [dir="rtl"] .message,
+  .rtl .message {
+    flex-direction: row-reverse;
+  }
+
+  [dir="rtl"] .user-message,
+  .rtl .user-message {
+    flex-direction: row;
+  }
+
+  [dir="rtl"] .quick-report-card,
+  .rtl .quick-report-card {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+}
+
+/* ===== УЛУЧШЕНИЯ ДОСТУПНОСТИ ===== */
+@media (max-width: 768px) {
+  /* Увеличиваем области нажатия */
+  button,
+  .cta-button,
+  .action-button,
+  .quick-report-card,
+  .quick-report-btn {
+    min-height: 44px; /* Минимальный размер по рекомендациям Apple */
+  }
+
+  /* Улучшаем контраст для мобильных */
+  .text-gray-500 {
+    color: #4b5563; /* Более темный серый */
+  }
+
+  /* Отключаем hover эффекты на touch устройствах */
+  @media (hover: none) {
+    .quick-report-card:hover,
+    .action-button:hover,
+    .cta-button:hover {
+      transform: none;
+    }
+  }
+}
+
+/* ===== ЛАНДШАФТНАЯ ОРИЕНТАЦИЯ НА МОБИЛЬНЫХ ===== */
+@media (max-width: 768px) and (orientation: landscape) {
+  .chat-container {
+    height: calc(100vh - 50px);
+  }
+
+  .chat-header {
+    padding: 0.5rem 1rem;
+  }
+
+  .chat-header h1 {
+    font-size: 1.125rem;
+  }
+
+  .chat-messages {
+    padding: 0.5rem;
+  }
+
+  .message-text {
+    font-size: 0.875rem;
+  }
+}
+
+/* ===== СПЕЦИФИЧНЫЕ УЛУЧШЕНИЯ ДЛЯ iOS ===== */
+@supports (-webkit-touch-callout: none) {
+  /* iOS-специфичные стили */
+  input, textarea {
+    font-size: 16px; /* Предотвращаем автоматический zoom */
+  }
+
+  /* Фиксим проблемы с safe area на iPhone X+ */
+  .chat-input {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ===== АНИМАЦИИ ДЛЯ МОБИЛЬНЫХ ===== */
+@media (max-width: 768px) {
+  /* Упрощаем анимации для производительности */
+  .loading-spinner,
+  .loading-spinner-small {
+    animation-duration: 1s;
+  }
+
+  /* Отключаем сложные анимации */
+  .mock-pdf:hover:before,
+  .pdf-line:before {
+    animation: none;
+  }
+}
+/* ===== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ БЫСТРЫХ ОТЧЕТОВ В ЧАТЕ ===== */
+
+/* Структура кнопок быстрых отчетов в чате */
+.quick-report-btn-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.quick-report-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.quick-report-text {
+  flex: 1;
+  text-align: left;
+}
+
+/* Мобильная адаптация для быстрых кнопок в чате */
+@media (max-width: 768px) {
+  .quick-reports {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 2px dashed #e2e8f0;
+  }
+
+  .quick-reports h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    text-align: center;
+  }
+
+  .quick-reports-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .quick-report-btn {
+    padding: 0.875rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+  }
+
+  .quick-report-btn:hover:not(:disabled) {
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  }
+
+  .quick-report-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .quick-report-btn-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .quick-report-icon {
+    font-size: 1.75rem;
+  }
+
+  .quick-report-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.125rem;
+  }
+
+  .quick-report-desc {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    line-height: 1.3;
+  }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 375px) {
+  .quick-report-btn {
+    padding: 0.75rem;
+  }
+
+  .quick-report-icon {
+    font-size: 1.5rem;
+  }
+
+  .quick-report-title {
+    font-size: 0.875rem;
+  }
+
+  .quick-report-desc {
+    font-size: 0.75rem;
+  }
+}
+/* ===== МОБИЛЬНОЕ МЕНЮ ===== */
+
+/* Кнопка бургер-меню */
+.mobile-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 1001;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex;
+  }
+
+  /* Скрываем десктопную навигацию на мобильных */
+  .desktop-nav {
+    display: none !important;
+  }
+}
+
+.burger-line {
+  width: 24px;
+  height: 2px;
+  background: #374151;
+  margin: 3px 0;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.burger-line.open:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.burger-line.open:nth-child(2) {
+  opacity: 0;
+}
+
+.burger-line.open:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+/* Мобильное меню */
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 80%;
+  max-width: 320px;
+  height: 100vh;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.mobile-menu.open {
+  right: 0;
+}
+
+/* RTL поддержка для арабского */
+[dir="rtl"] .mobile-menu,
+.rtl .mobile-menu {
+  right: auto;
+  left: -100%;
+}
+
+[dir="rtl"] .mobile-menu.open,
+.rtl .mobile-menu.open {
+  left: 0;
+  right: auto;
+}
+
+.mobile-menu-content {
+  padding: 80px 20px 40px;
+}
+
+.mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 40px;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  font-size: 1.125rem;
+  color: #374151;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.mobile-nav-link:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.mobile-nav-link.active {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Выбор языка в мобильном меню */
+.mobile-language-selector {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 24px;
+}
+
+.mobile-language-selector h3 {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.mobile-lang-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-lang-btn {
+  padding: 12px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-lang-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.mobile-lang-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* RTL для кнопок языка */
+[dir="rtl"] .mobile-lang-btn,
+.rtl .mobile-lang-btn {
+  text-align: right;
+  flex-direction: row-reverse;
+}
+
+/* Оверлей */
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Анимации для iOS */
+@supports (-webkit-touch-callout: none) {
+  .mobile-menu {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Предотвращаем скролл body когда меню открыто */
+body.mobile-menu-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ===== ДОПОЛНИТЕЛЬНЫЕ АДАПТИВНЫЕ СТИЛИ ===== */
+
+/* Улучшаем заголовок на мобильных */
+@media (max-width: 768px) {
+  nav .text-lg {
+    font-size: 1rem;
+  }
+
+  nav .px-4 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Центрируем логотип когда есть бургер меню */
+  nav .flex.justify-between {
+    align-items: center;
+  }
+
+  /* Уменьшаем padding на мобильных */
+  .max-w-7xl.mx-auto.px-4 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 375px) {
+  nav .text-lg {
+    font-size: 0.875rem;
+  }
+
+  .mobile-menu {
+    width: 90%;
+  }
+
+  .mobile-menu-content {
+    padding: 60px 16px 32px;
+  }
+
+  .mobile-nav-link {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+}
+.quick-report-card {
+  cursor: pointer !important;
+  user-select: none;
+}
+
+.quick-report-card:active {
+  background: #e0e7ff !important;
+}/* ===== ПРОСТОЕ РЕШЕНИЕ ДЛЯ МОБИЛЬНЫХ PDF ===== */
+/* ===== КРАСИВЫЙ МОБИЛЬНЫЙ PDF ПРОСМОТР ===== */
+
+.mobile-pdf-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Основная карточка PDF */
+.pdf-preview-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 2rem 1.5rem;
+  box-shadow:
+          0 10px 40px rgba(0, 0, 0, 0.08),
+          0 2px 8px rgba(0, 0, 0, 0.04);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Декоративный фон */
+.pdf-preview-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
+  animation: rotate 30s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Иконка PDF */
+.pdf-icon {
+  font-size: 5rem;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 8px 16px rgba(59, 130, 246, 0.2));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.05);
+  }
+}
+
+.pdf-title {
+  font-size: 1.75rem;
+  color: #1f2937;
+  margin: 0 0 0.75rem 0;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+.pdf-description {
+  font-size: 0.9375rem;
+  color: #6b7280;
+  margin: 0 0 2rem 0;
+  line-height: 1.6;
+  position: relative;
+  z-index: 1;
+}
+
+/* Информация о файле */
+.pdf-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+.pdf-info-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.pdf-info-item:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.info-icon {
+  font-size: 1.75rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-value {
+  font-size: 0.9375rem;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+/* Кнопки действий */
+.pdf-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.pdf-action-btn {
+  padding: 1.125rem 1.5rem;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 54px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Основная кнопка */
+.pdf-action-btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  box-shadow:
+          0 4px 14px rgba(59, 130, 246, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.pdf-action-btn.primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.pdf-action-btn.primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+          0 8px 20px rgba(59, 130, 246, 0.5),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.pdf-action-btn.primary:hover::before {
+  left: 100%;
+}
+
+.pdf-action-btn.primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Вторичная кнопка */
+.pdf-action-btn.secondary {
+  background: rgba(243, 244, 246, 0.8);
+  color: #374151;
+  border: 2px solid rgba(229, 231, 235, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.pdf-action-btn.secondary:hover {
+  background: rgba(229, 231, 235, 0.9);
+  border-color: rgba(209, 213, 219, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.pdf-action-btn.secondary:active {
+  transform: translateY(0);
+}
+
+/* Анимация загрузки */
+.loading-spinner-inline {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+/* Превью PDF страницы */
+.pdf-thumbnail {
+  margin-top: 1.5rem;
+  perspective: 1000px;
+}
+
+.pdf-page-preview {
+  background: white;
+  border-radius: 16px;
+  box-shadow:
+          0 10px 40px rgba(0, 0, 0, 0.08),
+          0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 1rem;
+  overflow: hidden;
+  transform: rotateX(5deg);
+  transition: transform 0.3s ease;
+}
+
+.pdf-page-preview:hover {
+  transform: rotateX(0deg);
+}
+
+.pdf-page-content {
+  background: linear-gradient(to bottom, #f9fafb 0%, #f3f4f6 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  min-height: 320px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Элементы превью */
+.pdf-page-header {
+  height: 45px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.pdf-page-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  to { left: 100%; }
+}
+
+.pdf-page-line {
+  height: 10px;
+  background: linear-gradient(90deg, #e5e7eb 0%, #d1d5db 100%);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.pdf-page-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  animation: fillLine 2s ease-out forwards;
+}
+
+.pdf-page-line:nth-child(2)::after { animation-delay: 0.2s; }
+.pdf-page-line:nth-child(3)::after { animation-delay: 0.4s; }
+
+.pdf-page-line.short {
+  width: 65%;
+}
+
+@keyframes fillLine {
+  to { width: 100%; }
+}
+
+.pdf-page-chart {
+  height: 90px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.pdf-page-chart::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  width: 60%;
+  height: 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 8px 8px 0 0;
+  animation: growChart 1.5s ease-out 0.8s forwards;
+}
+
+@keyframes growChart {
+  to { height: 65%; }
+}
+
+/* Адаптация для маленьких экранов */
+@media (max-width: 375px) {
+  .mobile-pdf-viewer {
+    padding: 0.75rem;
+  }
+
+  .pdf-preview-card {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .pdf-icon {
+    font-size: 4rem;
+  }
+
+  .pdf-title {
+    font-size: 1.5rem;
+  }
+
+  .pdf-info-grid {
+    padding: 1.25rem;
+    gap: 0.75rem;
+  }
+
+  .pdf-action-btn {
+    padding: 1rem 1.25rem;
+    font-size: 0.9375rem;
+    min-height: 50px;
+  }
+}
+
+/* Темная тема (автоматически) */
+@media (prefers-color-scheme: dark) {
+  .pdf-preview-card {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    color: #f9fafb;
+  }
+
+  .pdf-preview-card::before {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  }
+
+  .pdf-title {
+    color: #f9fafb;
+  }
+
+  .pdf-description {
+    color: #9ca3af;
+  }
+
+  .pdf-info-grid {
+    background: rgba(31, 41, 55, 0.8);
+    border-color: rgba(55, 65, 81, 0.5);
+  }
+
+  .pdf-info-item:hover {
+    background: rgba(55, 65, 81, 0.5);
+  }
+
+  .info-label {
+    color: #9ca3af;
+  }
+
+  .info-value {
+    color: #f3f4f6;
+  }
+
+  .pdf-action-btn.secondary {
+    background: rgba(55, 65, 81, 0.8);
+    color: #f9fafb;
+    border-color: rgba(75, 85, 99, 0.8);
+  }
+
+  .pdf-action-btn.secondary:hover {
+    background: rgba(75, 85, 99, 0.9);
+    border-color: rgba(107, 114, 128, 1);
+  }
+
+  .pdf-page-preview {
+    background: #1f2937;
+  }
+
+  .pdf-page-content {
+    background: linear-gradient(to bottom, #111827 0%, #0f172a 100%);
+    border-color: #374151;
+  }
+
+  .pdf-page-line {
+    background: linear-gradient(90deg, #374151 0%, #4b5563 100%);
+  }
+}
+
+/* Улучшения для iOS */
+@supports (-webkit-touch-callout: none) {
+  .pdf-action-btn {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-pdf-viewer {
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* RTL поддержка */
+[dir="rtl"] .mobile-pdf-viewer,
+.rtl .mobile-pdf-viewer {
+  direction: rtl;
+}
+
+[dir="rtl"] .pdf-action-btn,
+.rtl .pdf-action-btn {
+  flex-direction: row-reverse;
+}
+
+.mobile-pdf-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  min-height: 400px;
+}
+
+.pdf-ready-icon {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+.mobile-pdf-actions h3 {
+  font-size: 1.5rem;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+}
+
+.mobile-pdf-actions p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 2rem 0;
+}
+
+.mobile-pdf-btn {
+  width: 100%;
+  max-width: 280px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 0.75rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.mobile-pdf-btn.primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+}
+
+.mobile-pdf-btn.primary:active {
+  transform: scale(0.98);
+}
+
+.mobile-pdf-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 2px solid #e5e7eb;
+}
+
+.mobile-pdf-btn.secondary:active {
+  background: #e5e7eb;
+}

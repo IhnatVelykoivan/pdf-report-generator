@@ -34,5 +34,31 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
 app.listen(PORT, () => {
     console.log(`PDF Renderer Service running on port ${PORT}`);
 });
+// Расширенная настройка CORS
+const corsOptions = {
+    origin: [
+        'http://localhost:5173',  // Vite dev server
+        'http://localhost:5174',  // Альтернативный порт Vite
+        'http://localhost:3000',  // Возможный другой порт
+        'http://127.0.0.1:5173',  // IP адрес
+        'http://127.0.0.1:5174',
+        'http://127.0.0.1:3000'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Content-Type', 'Content-Disposition']
+};
+
+app.use(cors(corsOptions));
+
+// Добавьте middleware для логирования всех запросов
+app.use((req, res, next) => {
+    console.log(`📨 ${new Date().toISOString()} - ${req.method} ${req.path}`);
+    if (req.method === 'POST') {
+        console.log('📦 Body:', JSON.stringify(req.body, null, 2).substring(0, 200));
+    }
+    next();
+});
 
 export default app;

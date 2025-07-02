@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, createContext, useContext } from 'react';
+import MobileMenu from './MobileMenu';
 import type { SupportedLanguage } from '../config/languages';
 
 interface LanguageContextType {
@@ -57,7 +58,9 @@ const Layout = ({ children }: LayoutProps) => {
                                     📄 {t.title}
                                 </Link>
                             </div>
-                            <div className="flex items-center space-x-4">
+
+                            {/* Десктопная навигация - скрывается на мобильных */}
+                            <div className="flex items-center space-x-4 desktop-nav">
                                 <div className="flex space-x-8">
                                     <Link
                                         to="/"
@@ -111,6 +114,13 @@ const Layout = ({ children }: LayoutProps) => {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Мобильное меню - показывается только на мобильных */}
+                            <MobileMenu
+                                language={language}
+                                setLanguage={setLanguage}
+                                translations={navTranslations}
+                            />
                         </div>
                     </div>
                 </nav>

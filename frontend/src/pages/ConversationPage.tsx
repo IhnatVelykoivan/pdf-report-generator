@@ -448,8 +448,10 @@ ${result.suggestions?.map(s => `• ${s}`).join('\n')}
                                                 onClick={() => handleQuickReport(report.type, report.title)}
                                             >
                                                 <div className="card-icon">{icon}</div>
-                                                <h4 className="card-title">{report.title.replace(icon, '').trim()}</h4>
-                                                <p className="card-description">{report.description}</p>
+                                                <div className="card-content">
+                                                    <h4 className="card-title">{report.title.replace(icon, '').trim()}</h4>
+                                                    <p className="card-description">{report.description}</p>
+                                                </div>
                                                 {activeQuickReportType === report.type && (
                                                     <div className="card-loading">
                                                         <div className="loading-spinner-small"></div>
