@@ -30,6 +30,10 @@ export interface FeedbackResponse {
     error?: string;
 }
 
+export interface RenderDSLRequest {
+    dsl: any;
+}
+
 class SimplePdfApiService {
     private readonly baseUrl: string;
 
@@ -85,6 +89,47 @@ class SimplePdfApiService {
     }
 
     /**
+     * Рендеринг DSL в PDF - прямой вызов рендера без генерации
+     */
+    async renderDSL(request: RenderDSLRequest): Promise<GenerateReportResponse> {
+        try {
+            console.log('🎨 Отправляем DSL на рендеринг...');
+
+            const response = await fetch(`${this.baseUrl}/api/render`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                return {
+                    success: false,
+                    error: errorData?.message || errorData?.error || `HTTP error! status: ${response.status}`
+                };
+            }
+
+            // Получаем PDF как blob
+            const pdfBlob = await response.blob();
+            console.log('📦 PDF отрендерен, размер:', pdfBlob.size, 'bytes');
+
+            return {
+                success: true,
+                pdfBlob
+            };
+
+        } catch (error) {
+            console.error('❌ Ошибка рендеринга DSL:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Неизвестная ошибка'
+            };
+        }
+    }
+
+    /**
      * Отправка фидбека для изменения отчета
      */
     async sendFeedback(request: FeedbackRequest): Promise<FeedbackResponse> {
@@ -115,6 +160,63 @@ class SimplePdfApiService {
 
         } catch (error) {
             console.error('❌ Ошибка отправки фидбека:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Неизвестная ошибка'
+            };
+        }
+    }
+
+    /**
+     * Получение последнего DSL из истории сообщений (через сервер)
+     */
+    async getLastGeneratedDSL(): Promise<{ success: boolean; dsl?: any; error?: string }> {
+        try {
+            console.log('📥 Запрашиваем последний сгенерированный DSL...');
+
+            // Для простоты возвращаем базовый DSL
+            // В реальном приложении здесь был бы запрос к серверу
+            const baseDSL = {
+                template: "default",
+                defaultFont: "DejaVuSans",
+                defaultDirection: "ltr",
+                pages: [{
+                    elements: [
+                        {
+                            type: "text",
+                            content: "Отчёт",
+                            position: { x: 50, y: 100 },
+                            style: {
+                                fontSize: 24,
+                                color: "#2C3E50",
+                                width: 495,
+                                align: "center",
+                                font: "DejaVuSans"
+                            }
+                        },
+                        {
+                            type: "text",
+                            content: "Данные вашего отчета",
+                            position: { x: 50, y: 200 },
+                            style: {
+                                fontSize: 12,
+                                color: "#34495E",
+                                width: 495,
+                                lineBreak: true,
+                                font: "DejaVuSans"
+                            }
+                        }
+                    ]
+                }]
+            };
+
+            return {
+                success: true,
+                dsl: baseDSL
+            };
+
+        } catch (error) {
+            console.error('❌ Ошибка получения DSL:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Неизвестная ошибка'

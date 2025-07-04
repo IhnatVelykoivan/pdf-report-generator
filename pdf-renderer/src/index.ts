@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import { apiRouter } from './api/routes';
 import claudeRouter from './routes/claude';
+import { dslRouter } from './api/dslRoutes';
 
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 // Routes
 app.use('/api', apiRouter);
 app.use('/api/claude', claudeRouter);
+app.use('/api/dsl', dslRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -60,5 +62,6 @@ app.use((req, res, next) => {
     }
     next();
 });
+
 
 export default app;

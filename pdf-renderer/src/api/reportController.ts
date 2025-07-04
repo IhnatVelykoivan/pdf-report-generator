@@ -11,6 +11,7 @@ import {
     type SupportedLanguage
 } from '../utils/languageUtils';
 import { getQuickReportTemplate } from '../templates/quickReportTemplates';
+import { dslStorage } from '../services/dslStorage';
 
 export interface GenerateReportRequest {
     userMessage?: string;
@@ -111,13 +112,17 @@ export const generateReport = async (req: Request, res: Response) => {
 
         console.log(`🎯 Параметры отчета: язык=${language}, тип=${reportType}, заголовок="${title}"`);
 
+        // СОХРАНЯЕМ DSL ДЛЯ ПОСЛЕДУЮЩЕГО РЕДАКТИРОВАНИЯ (ДО ОТПРАВКИ ОТВЕТА!)
+        dslStorage.saveDSL(finalDSL, reportType, language);
+        console.log('💾 DSL сохранен для редактирования');
+
         // Рендерим PDF
         console.log('🎨 Начинаем рендеринг PDF...');
         const pdfBuffer = await renderDSLToPDF(finalDSL);
 
         console.log(`✅ PDF успешно сгенерирован. Размер: ${pdfBuffer.length} байт`);
 
-        // Отправляем PDF
+        // Отправляем PDF (ПОСЛЕ ЭТОГО НИЧЕГО НЕ ДОЛЖНО БЫТЬ!)
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${reportType}-${language}-${Date.now()}.pdf"`);
         res.send(pdfBuffer);
